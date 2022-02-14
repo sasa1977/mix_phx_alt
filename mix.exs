@@ -9,6 +9,7 @@ defmodule Demo.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
+      preferred_cli_env: preferred_cli_env(),
       deps: deps(),
       dialyzer: dialyzer()
     ]
@@ -51,8 +52,16 @@ defmodule Demo.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "assets.deploy": ["esbuild default --minify", "phx.digest"]
+      "assets.deploy": ["esbuild default --minify", "phx.digest"],
+      "demo.run_ci_checks": [
+        "format --check-formatted",
+        "test"
+      ]
     ]
+  end
+
+  defp preferred_cli_env do
+    ["demo.run_ci_checks": :test]
   end
 
   defp dialyzer do
