@@ -7,6 +7,7 @@ defmodule DemoWeb.ConnCase do
       import Phoenix.ConnTest
       import DemoWeb.ConnCase
 
+      # credo:disable-for-next-line Credo.Check.Readability.AliasAs
       alias DemoWeb.Router.Helpers, as: Routes
 
       # The default endpoint for testing
