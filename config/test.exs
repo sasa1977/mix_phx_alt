@@ -13,8 +13,6 @@ config :demo, DemoWeb.Endpoint,
   secret_key_base: "K0Qh5bXJnroiweVp9bE07TKC1BeaLYxmJ61HRU9D6u6K0+UqCfCUSyyF9UMyODvz",
   server: false
 
-config :demo, Demo.Mailer, adapter: Swoosh.Adapters.Test
-
 config :logger, level: :warn
 
 config :phoenix, :plug_init_mode, :runtime

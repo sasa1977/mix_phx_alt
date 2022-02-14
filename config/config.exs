@@ -9,10 +9,6 @@ config :demo, DemoWeb.Endpoint,
   pubsub_server: Demo.PubSub,
   live_view: [signing_salt: "lM/3bilV"]
 
-config :demo, Demo.Mailer, adapter: Swoosh.Adapters.Local
-
-config :swoosh, :api_client, false
-
 config :esbuild,
   version: "0.14.0",
   default: [
