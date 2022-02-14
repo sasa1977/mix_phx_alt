@@ -55,7 +55,10 @@ defmodule Demo.MixProject do
       "assets.deploy": ["esbuild default --minify", "phx.digest"],
       "demo.run_ci_checks": [
         "format --check-formatted",
-        "test"
+        "test",
+        "credo",
+        "xref graph --label compile-connected --fail-above 0",
+        "dialyzer"
       ]
     ]
   end
