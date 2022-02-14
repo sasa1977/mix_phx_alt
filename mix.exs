@@ -9,7 +9,8 @@ defmodule Demo.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      dialyzer: dialyzer()
     ]
   end
 
@@ -33,6 +34,7 @@ defmodule Demo.MixProject do
   defp deps do
     [
       {:credo, "~> 1.6", runtime: false},
+      {:dialyxir, "~> 1.1", runtime: false},
       {:ecto_sql, "~> 3.6"},
       {:esbuild, "~> 0.3", runtime: Mix.env() == :dev},
       {:floki, ">= 0.30.0", only: :test},
@@ -64,5 +66,9 @@ defmodule Demo.MixProject do
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.deploy": ["esbuild default --minify", "phx.digest"]
     ]
+  end
+
+  defp dialyzer do
+    [plt_add_apps: [:ex_unit]]
   end
 end
