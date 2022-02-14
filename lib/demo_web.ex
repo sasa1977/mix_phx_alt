@@ -1,3 +1,5 @@
+# credo:disable-for-this-file Credo.Check.Readability.Specs
+
 defmodule DemoWeb do
   def controller do
     quote do
