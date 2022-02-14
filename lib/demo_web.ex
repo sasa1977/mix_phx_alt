@@ -4,7 +4,6 @@ defmodule DemoWeb do
       use Phoenix.Controller, namespace: DemoWeb
 
       import Plug.Conn
-      import DemoWeb.Gettext
       alias DemoWeb.Router.Helpers, as: Routes
     end
   end
@@ -60,7 +59,6 @@ defmodule DemoWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import DemoWeb.Gettext
     end
   end
 
@@ -73,7 +71,6 @@ defmodule DemoWeb do
       import Phoenix.View
 
       import DemoWeb.ErrorHelpers
-      import DemoWeb.Gettext
       alias DemoWeb.Router.Helpers, as: Routes
     end
   end
