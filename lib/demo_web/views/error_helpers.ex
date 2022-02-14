@@ -1,6 +1,7 @@
 defmodule DemoWeb.ErrorHelpers do
   use Phoenix.HTML
 
+  @spec error_tag(Phoenix.HTML.Form.t(), atom) :: [Phoenix.HTML.safe()]
   def error_tag(form, field) do
     Enum.map(Keyword.get_values(form.errors, field), fn error ->
       message =
