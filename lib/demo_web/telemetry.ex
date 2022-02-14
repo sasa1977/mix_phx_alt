@@ -6,7 +6,7 @@ defmodule DemoWeb.Telemetry do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
-  @impl true
+  @impl Supervisor
   def init(_arg) do
     children = [
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000}
