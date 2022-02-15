@@ -10,6 +10,7 @@ defmodule Demo.Interface.Endpoint do
     opts =
       config
       |> deep_merge(
+        http: [port: 4000],
         url: [host: "localhost"],
         render_errors: [view: Demo.Interface.Error.View, accepts: ~w(html json), layout: false],
         pubsub_server: Demo.PubSub,
@@ -23,7 +24,7 @@ defmodule Demo.Interface.Endpoint do
   defp endpoint_opts(:dev) do
     [
       # Binding to loopback ipv4 address prevents access from other machines.
-      http: [ip: {127, 0, 0, 1}, port: 4000],
+      http: [ip: {127, 0, 0, 1}],
       check_origin: false,
       secret_key_base: "6SQyoN0wWViSTd5UaarW/wZsqTX0sFgYqYfGZpehG2s6kCwJOSiVVaiLBUO5oUdB",
       watchers: [
@@ -42,7 +43,7 @@ defmodule Demo.Interface.Endpoint do
   defp endpoint_opts(:test) do
     [
       # Binding to loopback ipv4 address prevents access from other machines.
-      http: [ip: {127, 0, 0, 1}, port: 4002],
+      http: [ip: {127, 0, 0, 1}],
       secret_key_base: "K0Qh5bXJnroiweVp9bE07TKC1BeaLYxmJ61HRU9D6u6K0+UqCfCUSyyF9UMyODvz",
       server: false
     ]
@@ -57,7 +58,6 @@ defmodule Demo.Interface.Endpoint do
         """
 
     host = System.get_env("PHX_HOST") || "example.com"
-    port = String.to_integer(System.get_env("PORT") || "4000")
 
     server_opt =
       if System.get_env("PHX_SERVER") && System.get_env("RELEASE_NAME"),
@@ -67,10 +67,7 @@ defmodule Demo.Interface.Endpoint do
     server_opt ++
       [
         url: [host: host, port: 443],
-        http: [
-          ip: {0, 0, 0, 0, 0, 0, 0, 0},
-          port: port
-        ],
+        http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}],
         secret_key_base: secret_key_base,
         cache_static_manifest: "priv/static/cache_manifest.json"
       ]
