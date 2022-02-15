@@ -1,7 +1,7 @@
 import Config
 
 config :demo,
-  ecto_repos: [Demo.Repo]
+  ecto_repos: [Demo.Core.Repo]
 
 config :demo, Demo.Interface.Endpoint,
   url: [host: "localhost"],

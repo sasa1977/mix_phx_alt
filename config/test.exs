@@ -1,6 +1,6 @@
 import Config
 
-config :demo, Demo.Repo,
+config :demo, Demo.Core.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",

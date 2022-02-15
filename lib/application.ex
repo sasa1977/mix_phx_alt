@@ -4,7 +4,7 @@ defmodule Demo.Application do
   @impl Application
   def start(_type, _args) do
     children = [
-      Demo.Repo,
+      Demo.Core.Repo,
       Demo.Interface.Telemetry,
       {Phoenix.PubSub, name: Demo.PubSub},
       Demo.Interface.Endpoint
