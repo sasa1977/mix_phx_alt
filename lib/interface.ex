@@ -3,16 +3,6 @@
 defmodule Demo.Interface do
   use Boundary, exports: [Endpoint], deps: [Demo.Core]
 
-  def controller do
-    quote do
-      use Phoenix.Controller, namespace: Demo.Interface
-
-      import Plug.Conn
-      # credo:disable-for-next-line Credo.Check.Readability.AliasAs
-      alias Demo.Interface.Router.Helpers, as: Routes
-    end
-  end
-
   def view do
     quote do
       use Phoenix.View,
