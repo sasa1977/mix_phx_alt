@@ -3,9 +3,9 @@ import Config
 config :demo,
   ecto_repos: [Demo.Repo]
 
-config :demo, DemoWeb.Endpoint,
+config :demo, Demo.Interface.Endpoint,
   url: [host: "localhost"],
-  render_errors: [view: DemoWeb.ErrorView, accepts: ~w(html json), layout: false],
+  render_errors: [view: Demo.Interface.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: Demo.PubSub,
   live_view: [signing_salt: "lM/3bilV"]
 

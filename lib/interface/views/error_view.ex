@@ -1,7 +1,7 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
-defmodule DemoWeb.ErrorView do
-  use DemoWeb, :view
+defmodule Demo.Interface.ErrorView do
+  use Demo.Interface, :view
 
   def template_not_found(template, _assigns) do
     Phoenix.Controller.status_message_from_template(template)

@@ -1,4 +1,4 @@
-defmodule DemoWeb.Endpoint do
+defmodule Demo.Interface.Endpoint do
   use Phoenix.Endpoint, otp_app: :demo
 
   @session_options [
@@ -37,5 +37,5 @@ defmodule DemoWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug DemoWeb.Router
+  plug Demo.Interface.Router
 end

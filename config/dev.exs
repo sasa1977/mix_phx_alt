@@ -8,7 +8,7 @@ config :demo, Demo.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-config :demo, DemoWeb.Endpoint,
+config :demo, Demo.Interface.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
@@ -19,12 +19,12 @@ config :demo, DemoWeb.Endpoint,
     esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
   ]
 
-config :demo, DemoWeb.Endpoint,
+config :demo, Demo.Interface.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"lib/demo_web/(live|views)/.*(ex)$",
-      ~r"lib/demo_web/templates/.*(eex)$"
+      ~r"lib/interface/(live|views)/.*(ex)$",
+      ~r"lib/interface/templates/.*(eex)$"
     ]
   ]
 

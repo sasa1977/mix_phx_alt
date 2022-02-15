@@ -1,4 +1,4 @@
-defmodule DemoWeb.Telemetry do
+defmodule Demo.Interface.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 

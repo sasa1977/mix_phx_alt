@@ -8,7 +8,7 @@ config :demo, Demo.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 10
 
-config :demo, DemoWeb.Endpoint,
+config :demo, Demo.Interface.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "K0Qh5bXJnroiweVp9bE07TKC1BeaLYxmJ61HRU9D6u6K0+UqCfCUSyyF9UMyODvz",
   server: false

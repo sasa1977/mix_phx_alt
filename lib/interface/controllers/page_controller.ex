@@ -1,7 +1,7 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
-defmodule DemoWeb.PageController do
-  use DemoWeb, :controller
+defmodule Demo.Interface.PageController do
+  use Demo.Interface, :controller
 
   def index(conn, _params) do
     render(conn, "index.html")

@@ -1,11 +1,11 @@
-defmodule DemoWeb.Router do
-  use DemoWeb, :router
+defmodule Demo.Interface.Router do
+  use Demo.Interface, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, {DemoWeb.LayoutView, :root}
+    plug :put_root_layout, {Demo.Interface.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
@@ -14,7 +14,7 @@ defmodule DemoWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", DemoWeb do
+  scope "/", Demo.Interface do
     pipe_through :browser
 
     get "/", PageController, :index
@@ -26,7 +26,7 @@ defmodule DemoWeb.Router do
     scope "/" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: DemoWeb.Telemetry
+      live_dashboard "/dashboard", metrics: Demo.Interface.Telemetry
     end
   end
 end
