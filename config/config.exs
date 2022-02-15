@@ -1,14 +1,5 @@
 import Config
 
-config :demo,
-  ecto_repos: [Demo.Core.Repo]
-
-config :demo, Demo.Interface.Endpoint,
-  url: [host: "localhost"],
-  render_errors: [view: Demo.Interface.Error.View, accepts: ~w(html json), layout: false],
-  pubsub_server: Demo.PubSub,
-  live_view: [signing_salt: "lM/3bilV"]
-
 config :esbuild,
   version: "0.14.0",
   default: [
@@ -19,9 +10,27 @@ config :esbuild,
   ]
 
 config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
+  format:
+    if(config_env() == :dev,
+      do: "[$level] $message\n",
+      else: "$time $metadata[$level] $message\n"
+    ),
+  level: Map.fetch!(%{dev: :debug, test: :warn, prod: :info}, config_env()),
   metadata: [:request_id]
 
-config :phoenix, :json_library, Jason
+config :phoenix,
+  json_library: Jason,
+  plug_init_mode: if(config_env() == :prod, do: :compile, else: :runtime),
+  stacktrace_depth: if(config_env() == :dev, do: 20)
 
-import_config "#{config_env()}.exs"
+# demo app
+
+config :demo,
+  mix_env: config_env(),
+  ecto_repos: [Demo.Core.Repo]
+
+if config_env() == :dev do
+  config :demo, Demo.Interface.Endpoint,
+    code_reloader: true,
+    debug_errors: true
+end

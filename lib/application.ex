@@ -1,9 +1,11 @@
 defmodule Demo.Application do
-  use Boundary, deps: [Demo.Core, Demo.Interface]
+  use Boundary, deps: [Demo.{Core, Config, Interface}]
   use Application
 
   @impl Application
   def start(_type, _args) do
+    Demo.Config.validate!()
+
     children = [
       Demo.Core.Repo,
       Demo.Interface.Telemetry,
