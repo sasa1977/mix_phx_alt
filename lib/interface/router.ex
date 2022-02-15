@@ -9,7 +9,7 @@ defmodule Demo.Interface.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, {Demo.Interface.LayoutView, :root}
+    plug :put_root_layout, {Demo.Interface.Layout.View, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
@@ -21,11 +21,11 @@ defmodule Demo.Interface.Router do
   scope "/", Demo.Interface do
     pipe_through :browser
 
-    get "/", PageController, :index
+    get "/", Page.Controller, :index, as: :page
 
     # test-only route for testing server error
     if Mix.env() == :test do
-      get "/server_error", PageController, :server_error
+      get "/server_error", Page.Controller, :server_error
     end
   end
 

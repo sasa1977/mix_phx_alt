@@ -1,9 +1,13 @@
 defmodule Demo.Interface.View do
-  defmacro __using__(_opts) do
+  defmacro __using__(opts) do
     quote do
-      use Phoenix.View,
-        root: "lib/interface/templates",
+      default_opts = [
+        root: Path.relative_to_cwd(__DIR__),
+        path: "templates",
         namespace: Demo.Interface
+      ]
+
+      use Phoenix.View, Keyword.merge(default_opts, unquote(opts))
 
       use Phoenix.HTML
 

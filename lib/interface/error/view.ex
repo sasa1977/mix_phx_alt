@@ -1,6 +1,6 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
-defmodule Demo.Interface.ErrorView do
+defmodule Demo.Interface.Error.View do
   use Demo.Interface.View
 
   def template_not_found(template, _assigns) do
