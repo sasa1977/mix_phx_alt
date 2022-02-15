@@ -18,6 +18,11 @@ defmodule Demo.Interface.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+
+    # test-only route for testing server error
+    if Mix.env() == :test do
+      get "/server_error", PageController, :server_error
+    end
   end
 
   if Mix.env() in [:dev, :test] do
