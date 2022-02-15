@@ -1,3 +1,3 @@
 defmodule Demo.Core do
-  use Boundary
+  use Boundary, deps: [Demo.Config]
 end
