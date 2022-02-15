@@ -1,5 +1,5 @@
 defmodule Demo.InterfaceTest do
-  use Demo.Test.ConnCase
+  use Demo.Test.ConnCase, async: true
 
   test "root page", %{conn: conn} do
     conn = get(conn, "/")
