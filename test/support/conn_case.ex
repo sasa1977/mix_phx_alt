@@ -1,5 +1,6 @@
 defmodule DemoWeb.ConnCase do
   use ExUnit.CaseTemplate
+  alias Ecto.Adapters.SQL
 
   using do
     quote do
@@ -7,6 +8,7 @@ defmodule DemoWeb.ConnCase do
       import Phoenix.ConnTest
       import DemoWeb.ConnCase
 
+      # credo:disable-for-next-line Credo.Check.Readability.AliasAs
       alias DemoWeb.Router.Helpers, as: Routes
 
       # The default endpoint for testing
@@ -15,8 +17,8 @@ defmodule DemoWeb.ConnCase do
   end
 
   setup tags do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Demo.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+    pid = SQL.Sandbox.start_owner!(Demo.Repo, shared: not tags[:async])
+    on_exit(fn -> SQL.Sandbox.stop_owner(pid) end)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

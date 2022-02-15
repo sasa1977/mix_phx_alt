@@ -1,9 +1,12 @@
+# credo:disable-for-this-file Credo.Check.Readability.Specs
+
 defmodule DemoWeb do
   def controller do
     quote do
       use Phoenix.Controller, namespace: DemoWeb
 
       import Plug.Conn
+      # credo:disable-for-next-line Credo.Check.Readability.AliasAs
       alias DemoWeb.Router.Helpers, as: Routes
     end
   end
@@ -71,6 +74,8 @@ defmodule DemoWeb do
       import Phoenix.View
 
       import DemoWeb.ErrorHelpers
+
+      # credo:disable-for-next-line Credo.Check.Readability.AliasAs
       alias DemoWeb.Router.Helpers, as: Routes
     end
   end
