@@ -5,12 +5,6 @@ config :demo, mix_env: config_env()
 config :demo,
   ecto_repos: [Demo.Core.Repo]
 
-config :demo, Demo.Interface.Endpoint,
-  url: [host: "localhost"],
-  render_errors: [view: Demo.Interface.Error.View, accepts: ~w(html json), layout: false],
-  pubsub_server: Demo.PubSub,
-  live_view: [signing_salt: "lM/3bilV"]
-
 config :esbuild,
   version: "0.14.0",
   default: [
