@@ -16,7 +16,7 @@ defmodule Demo.Interface.View do
 
       import Phoenix.LiveView.Helpers
       import Phoenix.View
-      import Demo.Interface.ErrorHelpers
+      import Demo.Interface.View.Helpers
 
       # credo:disable-for-next-line Credo.Check.Readability.AliasAs
       alias Demo.Interface.Router.Helpers, as: Routes
