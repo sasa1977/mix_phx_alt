@@ -1,4 +1,4 @@
-defmodule DemoWeb.ErrorHelpers do
+defmodule Demo.Interface.View.Helpers do
   use Phoenix.HTML
 
   @spec error_tag(Phoenix.HTML.Form.t(), atom) :: [Phoenix.HTML.safe()]

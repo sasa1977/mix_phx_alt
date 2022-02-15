@@ -1,13 +1,14 @@
 defmodule Demo.Application do
+  use Boundary, deps: [Demo.Core, Demo.Interface]
   use Application
 
   @impl Application
   def start(_type, _args) do
     children = [
-      Demo.Repo,
-      DemoWeb.Telemetry,
+      Demo.Core.Repo,
+      Demo.Interface.Telemetry,
       {Phoenix.PubSub, name: Demo.PubSub},
-      DemoWeb.Endpoint
+      Demo.Interface.Endpoint
     ]
 
     opts = [strategy: :one_for_one, name: Demo.Supervisor]
@@ -16,7 +17,7 @@ defmodule Demo.Application do
 
   @impl Application
   def config_change(changed, _new, removed) do
-    DemoWeb.Endpoint.config_change(changed, removed)
+    Demo.Interface.Endpoint.config_change(changed, removed)
     :ok
   end
 end

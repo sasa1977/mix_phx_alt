@@ -1,7 +1,7 @@
 import Config
 
 if System.get_env("PHX_SERVER") && System.get_env("RELEASE_NAME") do
-  config :demo, DemoWeb.Endpoint, server: true
+  config :demo, Demo.Interface.Endpoint, server: true
 end
 
 if config_env() == :prod do
@@ -14,7 +14,7 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6"), do: [:inet6], else: []
 
-  config :demo, Demo.Repo,
+  config :demo, Demo.Core.Repo,
     # ssl: true,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
@@ -30,7 +30,7 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
-  config :demo, DemoWeb.Endpoint,
+  config :demo, Demo.Interface.Endpoint,
     url: [host: host, port: 443],
     http: [
       ip: {0, 0, 0, 0, 0, 0, 0, 0},

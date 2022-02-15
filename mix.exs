@@ -6,6 +6,7 @@ defmodule Demo.MixProject do
       app: :demo,
       version: "0.1.0",
       elixir: "~> 1.12",
+      compilers: [:boundary | Mix.compilers()],
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -27,6 +28,7 @@ defmodule Demo.MixProject do
 
   defp deps do
     [
+      {:boundary, "~> 0.9"},
       {:credo, "~> 1.6", runtime: false},
       {:dialyxir, "~> 1.1", runtime: false},
       {:ecto_sql, "~> 3.6"},
