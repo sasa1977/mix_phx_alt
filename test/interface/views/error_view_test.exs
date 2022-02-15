@@ -1,5 +1,5 @@
 defmodule Demo.Interface.ErrorViewTest do
-  use Demo.Interface.ConnCase, async: true
+  use Demo.Test.ConnCase, async: true
   import Phoenix.View
 
   test "renders 404.html" do

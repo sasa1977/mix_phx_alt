@@ -1,4 +1,4 @@
-defmodule Demo.Interface.ConnCase do
+defmodule Demo.Test.ConnCase do
   use ExUnit.CaseTemplate
   alias Ecto.Adapters.SQL
 
@@ -6,7 +6,7 @@ defmodule Demo.Interface.ConnCase do
     quote do
       import Plug.Conn
       import Phoenix.ConnTest
-      import Demo.Interface.ConnCase
+      import Demo.Test.ConnCase
 
       # credo:disable-for-next-line Credo.Check.Readability.AliasAs
       alias Demo.Interface.Router.Helpers, as: Routes
