@@ -44,7 +44,7 @@ defmodule Demo.Interface.Endpoint do
     [
       # Binding to loopback ipv4 address prevents access from other machines.
       http: [ip: {127, 0, 0, 1}],
-      secret_key_base: "K0Qh5bXJnroiweVp9bE07TKC1BeaLYxmJ61HRU9D6u6K0+UqCfCUSyyF9UMyODvz",
+      secret_key_base: "6SQyoN0wWViSTd5UaarW/wZsqTX0sFgYqYfGZpehG2s6kCwJOSiVVaiLBUO5oUdB",
       server: false
     ]
   end
