@@ -3,6 +3,7 @@ on: push
 env:
   ELIXIR_VERSION: 1.13.1
   OTP_VERSION: 24.1.7
+  CACHE_VERSION: 1
 
 jobs:
   test:
@@ -31,8 +32,10 @@ jobs:
             deps
             ~/.hex
             ~/.mix
-          key: cache-v1-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock') }}
-          restore-keys: cache-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
+          key: cache-v${{ env.CACHE_VERSION }}-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            cache-v${{ env.CACHE_VERSION }}-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('mix.lock') }}
+            cache-v${{ env.CACHE_VERSION }}-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}
 
       - run: mix deps.get
 
