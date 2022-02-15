@@ -11,7 +11,8 @@ defmodule Demo.Interface.Endpoint do
       config
       |> deep_merge(
         http: [port: 4000],
-        url: [host: "localhost"],
+        url: [host: Demo.Config.site_host()],
+        secret_key_base: Demo.Config.secret_key_base(),
         render_errors: [view: Demo.Interface.Error.View, accepts: ~w(html json), layout: false],
         pubsub_server: Demo.PubSub,
         live_view: [signing_salt: "lM/3bilV"]
@@ -26,7 +27,6 @@ defmodule Demo.Interface.Endpoint do
       # Binding to loopback ipv4 address prevents access from other machines.
       http: [ip: {127, 0, 0, 1}],
       check_origin: false,
-      secret_key_base: "6SQyoN0wWViSTd5UaarW/wZsqTX0sFgYqYfGZpehG2s6kCwJOSiVVaiLBUO5oUdB",
       watchers: [
         esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
       ],
@@ -44,25 +44,14 @@ defmodule Demo.Interface.Endpoint do
     [
       # Binding to loopback ipv4 address prevents access from other machines.
       http: [ip: {127, 0, 0, 1}],
-      secret_key_base: "6SQyoN0wWViSTd5UaarW/wZsqTX0sFgYqYfGZpehG2s6kCwJOSiVVaiLBUO5oUdB",
       server: false
     ]
   end
 
   defp endpoint_opts(:prod) do
-    secret_key_base =
-      System.get_env("SECRET_KEY_BASE") ||
-        raise """
-        environment variable SECRET_KEY_BASE is missing.
-        You can generate one by calling: mix phx.gen.secret
-        """
-
-    host = System.get_env("PHX_HOST") || "example.com"
-
     [
-      url: [host: host, port: 443],
+      url: [port: 443],
       http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}],
-      secret_key_base: secret_key_base,
       cache_static_manifest: "priv/static/cache_manifest.json",
       server: true
     ]
