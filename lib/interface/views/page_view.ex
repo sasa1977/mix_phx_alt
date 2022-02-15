@@ -1,3 +1,3 @@
 defmodule Demo.Interface.PageView do
-  use Demo.Interface, :view
+  use Demo.Interface.View
 end

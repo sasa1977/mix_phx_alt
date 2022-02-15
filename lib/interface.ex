@@ -3,19 +3,6 @@
 defmodule Demo.Interface do
   use Boundary, exports: [Endpoint], deps: [Demo.Core]
 
-  def view do
-    quote do
-      use Phoenix.View,
-        root: "lib/interface/templates",
-        namespace: Demo.Interface
-
-      import Phoenix.Controller,
-        only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
-
-      unquote(view_helpers())
-    end
-  end
-
   def live_view do
     quote do
       use Phoenix.LiveView,
