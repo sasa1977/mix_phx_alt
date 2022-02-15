@@ -1,6 +1,8 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
 defmodule Demo.Interface do
+  use Boundary, exports: [Endpoint], deps: [Demo.Core]
+
   def controller do
     quote do
       use Phoenix.Controller, namespace: Demo.Interface

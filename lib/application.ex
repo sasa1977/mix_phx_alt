@@ -1,4 +1,5 @@
 defmodule Demo.Application do
+  use Boundary, deps: [Demo.Core, Demo.Interface]
   use Application
 
   @impl Application
