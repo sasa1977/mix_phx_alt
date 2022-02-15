@@ -1,5 +1,7 @@
 import Config
 
+config :demo, mix_env: config_env()
+
 config :demo,
   ecto_repos: [Demo.Core.Repo]
 
