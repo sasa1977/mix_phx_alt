@@ -59,18 +59,13 @@ defmodule Demo.Interface.Endpoint do
 
     host = System.get_env("PHX_HOST") || "example.com"
 
-    server_opt =
-      if System.get_env("PHX_SERVER") && System.get_env("RELEASE_NAME"),
-        do: [server: true],
-        else: []
-
-    server_opt ++
-      [
-        url: [host: host, port: 443],
-        http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}],
-        secret_key_base: secret_key_base,
-        cache_static_manifest: "priv/static/cache_manifest.json"
-      ]
+    [
+      url: [host: host, port: 443],
+      http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}],
+      secret_key_base: secret_key_base,
+      cache_static_manifest: "priv/static/cache_manifest.json",
+      server: true
+    ]
   end
 
   defp deep_merge(list1, list2) do
