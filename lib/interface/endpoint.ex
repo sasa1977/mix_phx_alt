@@ -25,7 +25,10 @@ defmodule Demo.Interface.Endpoint do
   defp endpoint_opts(:dev) do
     [
       # Binding to loopback ipv4 address prevents access from other machines.
-      http: [ip: {127, 0, 0, 1}],
+      # We also use smaller acceptor pools in dev for endpoints and repo. We shouldn't issue a huge
+      # load in dev mode anyway, and less processes makes the supervision tree view in observer
+      # nicer.
+      http: [ip: {127, 0, 0, 1}, transport_options: [num_acceptors: 10]],
       check_origin: false,
       watchers: [
         esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
