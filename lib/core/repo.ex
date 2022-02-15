@@ -15,20 +15,13 @@ defmodule Demo.Core.Repo do
 
   defp repo_opts(:dev) do
     [
-      username: "postgres",
-      password: "postgres",
-      hostname: "localhost",
-      database: "demo_dev",
-      show_sensitive_data_on_connection_error: true
+      url: "ecto://postgres:postgres@localhost/demo_dev"
     ]
   end
 
   defp repo_opts(:test) do
     [
-      username: "postgres",
-      password: "postgres",
-      hostname: "localhost",
-      database: "demo_test#{System.get_env("MIX_TEST_PARTITION")}",
+      url: "ecto://postgres:postgres@localhost/demo_test#{System.get_env("MIX_TEST_PARTITION")}",
       pool: Ecto.Adapters.SQL.Sandbox
     ]
   end
