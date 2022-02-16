@@ -44,3 +44,19 @@ jobs:
 
       - name: Run checks
         run: mix demo.run_ci_checks
+
+      - name: Check OTP release
+        run: |
+          # generate config and load to env vars, so release can use the correct database
+          set -a && source <(MIX_ENV=test mix run -e "IO.puts(Demo.Config.template())" | egrep "#.*=" | sed "s/# //")
+
+          mix release --overwrite
+
+          # reinitialize database to properly test migrations
+          MIX_ENV=test mix do ecto.drop, ecto.create
+
+          _build/prod/rel/demo/bin/migrate
+
+          # check that the app can be successfully started
+          _build/prod/rel/demo/bin/demo eval "{:ok, _} = Application.ensure_all_started(:demo)"
+        shell: bash
