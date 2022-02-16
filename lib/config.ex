@@ -8,7 +8,7 @@ defmodule Demo.Config do
       {:site_host, dev: "localhost"},
       {:db_url, dev: "ecto://postgres:postgres@localhost/demo_#{mix_env()}"},
       {:db_pool_size, type: :integer, default: 10},
-      {:db_ipv6?, type: :boolean, default: false}
+      {:db_ipv6, type: :boolean, default: false}
     ]
 
   @spec mix_env :: :dev | :test | :prod
