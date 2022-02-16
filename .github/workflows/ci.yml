@@ -3,7 +3,7 @@ on: push
 env:
   ELIXIR_VERSION: 1.13.1
   OTP_VERSION: 24.1.7
-  CACHE_VERSION: 1
+  CACHE_VERSION: 2
 
 jobs:
   test:

@@ -1,3 +1,3 @@
 defmodule Demo.Mix do
-  use Boundary, deps: [Demo.Config]
+  use Boundary, deps: [Demo.Config, Mix]
 end

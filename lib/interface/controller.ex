@@ -1,7 +1,7 @@
 defmodule Demo.Interface.Controller do
   defmacro __using__(_opts) do
     quote do
-      use Phoenix.Controller, namespace: Demo.Interface
+      use Phoenix.Controller
 
       import Plug.Conn
 
