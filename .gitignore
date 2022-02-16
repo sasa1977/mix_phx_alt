@@ -32,3 +32,5 @@ demo-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# config script for default prod configuration in local mode
+/priv/local_prod_config.exs
