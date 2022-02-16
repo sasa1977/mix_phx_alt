@@ -1,5 +1,5 @@
 defmodule Demo.Core do
-  use Boundary, deps: [Demo.Config]
+  use Boundary, deps: [Demo.Config], exports: [User, {Model, []}]
 
   @spec start_link :: Supervisor.on_start()
   def start_link do

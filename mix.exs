@@ -29,6 +29,7 @@ defmodule Demo.MixProject do
 
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
       {:boundary, "~> 0.9"},
       {:credo, "~> 1.6", runtime: false},
       {:dialyxir, "~> 1.1", runtime: false},
