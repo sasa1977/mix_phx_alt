@@ -23,6 +23,7 @@ defmodule Demo.Interface.Router do
 
     get "/", Page.Controller, :index, as: :page
 
+    get "/registration_form", User.Controller, :registration_form, as: :user
     post "/register", User.Controller, :register, as: :user
 
     # test-only route for testing server error
