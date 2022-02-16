@@ -3,8 +3,7 @@ defmodule Demo.Interface.View do
     quote do
       default_opts = [
         root: Path.relative_to_cwd(__DIR__),
-        path: "templates",
-        namespace: Demo.Interface
+        path: "templates"
       ]
 
       use Phoenix.View, Keyword.merge(default_opts, unquote(opts))
