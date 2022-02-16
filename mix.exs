@@ -12,7 +12,8 @@ defmodule Demo.MixProject do
       aliases: aliases(),
       preferred_cli_env: preferred_cli_env(),
       deps: deps(),
-      dialyzer: dialyzer()
+      dialyzer: dialyzer(),
+      boundary: boundary()
     ]
   end
 
@@ -74,6 +75,19 @@ defmodule Demo.MixProject do
 
   defp dialyzer do
     [plt_add_apps: [:ex_unit, :mix]]
+  end
+
+  defp boundary do
+    [
+      default: [
+        check: [
+          aliases: true,
+          apps: [
+            {:mix, :runtime}
+          ]
+        ]
+      ]
+    ]
   end
 
   defp create_boundary_pngs(_args) do
