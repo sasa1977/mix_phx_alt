@@ -6,15 +6,11 @@ defmodule Demo.Application do
   def start(_type, _args) do
     validate_config()
 
-    children = [
-      Demo.Core.Repo,
-      Demo.Interface.Telemetry,
-      {Phoenix.PubSub, name: Demo.PubSub},
-      Demo.Interface.Endpoint
-    ]
-
-    opts = [strategy: :one_for_one, name: Demo.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(
+      [Demo.Core, Demo.Interface],
+      strategy: :one_for_one,
+      name: __MODULE__
+    )
   end
 
   @impl Application
