@@ -23,6 +23,8 @@ defmodule Demo.Interface.Router do
 
     get "/", Page.Controller, :index, as: :page
 
+    post "/register", User.Controller, :register, as: :user
+
     # test-only route for testing server error
     if Mix.env() == :test do
       get "/server_error", Page.Controller, :server_error
