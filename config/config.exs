@@ -1,5 +1,8 @@
 import Config
 
+# speed up bcrypt in test env
+if Mix.env() == :test, do: config(:bcrypt_elixir, :log_rounds, 4)
+
 config :esbuild,
   version: "0.14.0",
   default: [
