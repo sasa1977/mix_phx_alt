@@ -7,7 +7,10 @@ defmodule Demo.InterfaceTest do
   end
 
   test "server error", %{conn: conn} do
-    {_status, _headers, response} = assert_error_sent 500, fn -> get(conn, "/server_error") end
+    # sending broken data to register to trigger an exception
+    {_status, _headers, response} =
+      assert_error_sent 500, fn -> post(conn, "/register", %{user: %{email: 1, password: 2}}) end
+
     assert response == "Internal Server Error"
   end
 end
