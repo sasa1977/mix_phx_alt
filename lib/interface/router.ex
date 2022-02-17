@@ -24,8 +24,7 @@ defmodule Demo.Interface.Router do
   scope "/", Demo.Interface do
     pipe_through :browser
 
-    get "/", Page.Controller, :index, as: :page
-
+    get "/", User.Controller, :welcome, as: :user
     get "/registration_form", User.Controller, :registration_form, as: :user
     post "/register", User.Controller, :register, as: :user
 

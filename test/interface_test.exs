@@ -1,9 +1,9 @@
 defmodule Demo.InterfaceTest do
   use Demo.Test.ConnCase, async: true
 
-  test "root page", %{conn: conn} do
-    conn = get(conn, "/")
-    assert html_response(conn, 200) =~ "Welcome!"
+  test "root page redirects to registration" do
+    conn = get(build_conn(), "/")
+    assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
   end
 
   test "not found", %{conn: conn} do

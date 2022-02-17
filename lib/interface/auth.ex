@@ -9,4 +9,7 @@ defmodule Demo.Interface.Auth do
     current_user = user_token && Demo.Core.User.from_auth_token(user_token)
     Plug.Conn.assign(conn, :current_user, current_user)
   end
+
+  @spec current_user(Plug.Conn.t()) :: Demo.Core.Model.User.t() | nil
+  def current_user(conn), do: conn.assigns.current_user
 end

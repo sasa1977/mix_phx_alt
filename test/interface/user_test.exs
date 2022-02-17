@@ -7,7 +7,8 @@ defmodule Demo.Interface.User do
       assert {:ok, conn} = register(params)
 
       assert conn.resp_body =~ "User created successfully."
-      assert conn.assigns.current_user.email == params.email
+      assert Demo.Interface.Auth.current_user(conn).email == params.email
+      assert conn.request_path == "/"
     end
 
     test "rejects invalid password" do
