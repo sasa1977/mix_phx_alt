@@ -1,5 +1,6 @@
 defmodule Demo.Core.User do
   import Ecto.Changeset
+  import Demo.Helpers
 
   alias Demo.Core.Model.User
   alias Demo.Core.Repo
@@ -34,7 +35,4 @@ defmodule Demo.Core.User do
          do: change(changeset, password_hash: Bcrypt.hash_pwd_salt(password)),
          else: ({:error, reason} -> changeset |> add_error(:password, reason))
   end
-
-  defp validate(true, _reason), do: :ok
-  defp validate(false, reason), do: {:error, reason}
 end

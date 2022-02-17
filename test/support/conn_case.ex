@@ -7,6 +7,7 @@ defmodule Demo.Test.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import Demo.Test.ConnCase
+      import Demo.Helpers
 
       # credo:disable-for-next-line Credo.Check.Readability.AliasAs
       alias Demo.Interface.Router.Helpers, as: Routes
@@ -37,9 +38,4 @@ defmodule Demo.Test.ConnCase do
   @spec changeset_errors(Ecto.Changeset.t(), atom) :: [String.t()]
   def changeset_errors(changeset, field_name),
     do: changeset |> changeset_errors() |> Map.get(field_name, [])
-
-  @spec validate(true, any) :: :ok
-  @spec validate(false, reason) :: {:error, reason} when reason: var
-  def validate(true, _reason), do: :ok
-  def validate(false, reason), do: {:error, reason}
 end
