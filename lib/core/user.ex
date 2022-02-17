@@ -2,11 +2,29 @@ defmodule Demo.Core.User do
   import Ecto.Changeset
   import Demo.Helpers
 
-  alias Demo.Core.Model.User
+  alias Demo.Core.Model.{Token, User}
   alias Demo.Core.Repo
 
-  @spec register(String.t(), String.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  @type token :: String.t()
+
+  @doc """
+  Registers a new user.
+
+  On success, this function returns the new authentication token for the created user. The returned
+  token is url-encoded. For security reasons, only the hash of the token is persisted in the
+  database, while the raw value isn't stored anywhere.
+  """
+  @spec register(String.t(), String.t()) :: {:ok, token} | {:error, Ecto.Changeset.t()}
   def register(email, password) do
+    Repo.transact(fn ->
+      with {:ok, user} <- store_user(email, password) do
+        token = create_token!(user, :auth)
+        {:ok, token}
+      end
+    end)
+  end
+
+  defp store_user(email, password) do
     %User{}
     |> change(email: email)
     |> validate_email()
@@ -34,5 +52,15 @@ defmodule Demo.Core.User do
          :ok <- validate(length <= max_length, "should be at most #{max_length} characters"),
          do: change(changeset, password_hash: Bcrypt.hash_pwd_salt(password)),
          else: ({:error, reason} -> changeset |> add_error(:password, reason))
+  end
+
+  defp create_token!(user, type) do
+    token = :crypto.strong_rand_bytes(32)
+
+    # we're only storing the token hash, to prevent the people with the database access from the
+    # unauthorized usage of the token
+    Repo.insert!(%Token{user_id: user.id, type: type, hash: :crypto.hash(:sha256, token)})
+
+    Base.url_encode64(token, padding: false)
   end
 end

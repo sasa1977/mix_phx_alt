@@ -10,7 +10,7 @@ defmodule Demo.Interface.User.Controller do
 
   def register(conn, %{"user" => %{"email" => email, "password" => password}}) do
     case User.register(email, password) do
-      {:ok, _user} ->
+      {:ok, _token} ->
         conn
         |> put_flash(:info, "User created successfully.")
         |> redirect(to: "/")
