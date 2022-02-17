@@ -17,7 +17,7 @@ defmodule Demo.Interface.Endpoint do
         pubsub_server: Demo.PubSub,
         live_view: [signing_salt: "lM/3bilV"]
       )
-      |> deep_merge(endpoint_opts(Demo.Config.mix_env()))
+      |> deep_merge(endpoint_opts(Demo.Helpers.mix_env()))
 
     {:ok, opts}
   end

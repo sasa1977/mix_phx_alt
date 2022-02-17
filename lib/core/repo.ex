@@ -12,7 +12,7 @@ defmodule Demo.Core.Repo do
         pool_size: Demo.Config.db_pool_size(),
         socket_options: if(Demo.Config.db_ipv6(), do: [:inet6], else: [])
       )
-      |> deep_merge(repo_opts(Demo.Config.mix_env()))
+      |> deep_merge(repo_opts(Demo.Helpers.mix_env()))
 
     {:ok, opts}
   end

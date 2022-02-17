@@ -28,7 +28,7 @@ defmodule Demo.Core.User do
 
     with :ok <- validate(is_bitstring(password) and password != "", "can't be blank"),
          length = String.length(password),
-         min_length = if(Demo.Config.mix_env() == :dev, do: 4, else: 12),
+         min_length = if(Demo.Helpers.mix_env() == :dev, do: 4, else: 12),
          max_length = 72,
          :ok <- validate(length >= min_length, "should be at least #{min_length} characters"),
          :ok <- validate(length <= max_length, "should be at most #{max_length} characters"),
