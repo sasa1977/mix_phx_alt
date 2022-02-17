@@ -3,7 +3,11 @@ defmodule Demo.Interface.User do
 
   describe "registration" do
     test "succeeds with valid parameters" do
-      assert register(valid_registration_params()) == :ok
+      params = valid_registration_params()
+      assert {:ok, conn} = register(params)
+
+      assert conn.resp_body =~ "User created successfully."
+      assert conn.assigns.current_user.email == params.email
     end
 
     test "rejects invalid password" do
@@ -48,19 +52,19 @@ defmodule Demo.Interface.User do
 
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)
 
-  defp register!(params), do: :ok = register(params)
+  defp register!(params) do
+    {:ok, user} = register(params)
+    user
+  end
 
   defp register(params) do
     params = Map.merge(valid_registration_params(), Map.new(params))
     conn = post(build_conn(), "/register", %{user: Map.new(params)})
 
-    with :ok <- validate(conn.status == 302, conn),
-         redirected_to = redirected_to(conn),
-         :ok <- validate(redirected_to == "/", conn),
-         conn = conn |> recycle() |> get(redirected_to),
-         :ok <- validate(conn.status == 200, conn) do
-      response_content_type(conn, :html)
-      validate(conn.resp_body =~ "User created successfully.", conn)
+    with :ok <- validate(conn.status == 302, conn) do
+      conn = conn |> recycle() |> get(redirected_to(conn))
+      assert conn.status == 200
+      {:ok, conn}
     end
   end
 

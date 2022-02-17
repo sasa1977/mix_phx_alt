@@ -1,6 +1,8 @@
 defmodule Demo.Interface.Router do
   use Phoenix.Router
 
+  import Demo.Interface.Auth, only: [fetch_current_user: 2]
+
   import Plug.Conn
   import Phoenix.Controller
   import Phoenix.LiveView.Router
@@ -9,6 +11,7 @@ defmodule Demo.Interface.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
+    plug :fetch_current_user
     plug :put_root_layout, {Demo.Interface.Layout.View, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
