@@ -2,9 +2,7 @@
 
 defmodule Demo.Interface.User.Controller do
   use Demo.Interface.Controller
-
   alias Demo.Core.{Model, User}
-  alias Demo.Interface.Auth
 
   def welcome(conn, _params), do: render(conn, :welcome)
 
@@ -15,7 +13,7 @@ defmodule Demo.Interface.User.Controller do
     case User.register(email, password) do
       {:ok, token} ->
         conn
-        |> Auth.set_token(token)
+        |> put_session(:user_token, token)
         |> put_flash(:info, "User created successfully.")
         |> redirect(to: Routes.user_path(conn, :welcome))
 
@@ -27,7 +25,7 @@ defmodule Demo.Interface.User.Controller do
   def logout(conn, _params) do
     conn
     |> clear_session()
-    |> Auth.clear_current_user()
+    |> assign(:current_user, nil)
     |> redirect(to: Routes.user_path(conn, :registration_form))
   end
 end
