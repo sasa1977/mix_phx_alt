@@ -6,17 +6,10 @@ defmodule Demo.Interface.User.Controller do
   alias Demo.Interface.Auth
   alias Demo.Core.{Model, User}
 
-  def registration_form(conn, _params) do
-    if is_nil(Auth.current_user(conn)),
-      do: render(conn, :registration_form, changeset: Ecto.Changeset.change(%Model.User{})),
-      else: redirect(conn, to: Routes.user_path(conn, :welcome))
-  end
+  def registration_form(conn, _params),
+    do: render(conn, :registration_form, changeset: Ecto.Changeset.change(%Model.User{}))
 
-  def welcome(conn, _params) do
-    if user = Auth.current_user(conn),
-      do: render(conn, :welcome, user: user),
-      else: redirect(conn, to: Routes.user_path(conn, :registration_form))
-  end
+  def welcome(conn, _params), do: render(conn, :welcome, user: Auth.current_user(conn))
 
   def register(conn, %{"user" => %{"email" => email, "password" => password}}) do
     case User.register(email, password) do

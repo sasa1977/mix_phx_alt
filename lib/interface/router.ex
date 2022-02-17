@@ -1,7 +1,7 @@
 defmodule Demo.Interface.Router do
   use Phoenix.Router
 
-  import Demo.Interface.Auth, only: [fetch_current_user: 2]
+  import Demo.Interface.Auth
 
   import Plug.Conn
   import Phoenix.Controller
@@ -21,10 +21,10 @@ defmodule Demo.Interface.Router do
     plug :accepts, ["json"]
   end
 
+  # anonymous routes
   scope "/", Demo.Interface do
-    pipe_through :browser
+    pipe_through [:browser, :require_anonymous]
 
-    get "/", User.Controller, :welcome, as: :user
     get "/registration_form", User.Controller, :registration_form, as: :user
     post "/register", User.Controller, :register, as: :user
 
@@ -32,6 +32,13 @@ defmodule Demo.Interface.Router do
     if Mix.env() == :test do
       get "/server_error", Page.Controller, :server_error
     end
+  end
+
+  # logged-in routes
+  scope "/", Demo.Interface do
+    pipe_through [:browser, :require_user]
+
+    get "/", User.Controller, :welcome, as: :user
   end
 
   if Mix.env() in [:dev, :test] do
