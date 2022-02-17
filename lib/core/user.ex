@@ -1,6 +1,8 @@
 defmodule Demo.Core.User do
-  import Ecto.Changeset
   import Demo.Helpers
+
+  import Ecto.Changeset
+  import Ecto.Query
 
   alias Demo.Core.Model.{Token, User}
   alias Demo.Core.Repo
@@ -22,6 +24,16 @@ defmodule Demo.Core.User do
         {:ok, token}
       end
     end)
+  end
+
+  @spec from_auth_token(token) :: User.t() | nil
+  def from_auth_token(encoded) do
+    with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
+         %Token{} = token <-
+           Repo.one(where(Token, hash: ^token_hash(raw), type: :auth) |> preload(:user)),
+         :ok <- validate(Token.valid?(token)),
+         do: token.user,
+         else: (_ -> nil)
   end
 
   defp store_user(email, password) do
@@ -59,8 +71,10 @@ defmodule Demo.Core.User do
 
     # we're only storing the token hash, to prevent the people with the database access from the
     # unauthorized usage of the token
-    Repo.insert!(%Token{user_id: user.id, type: type, hash: :crypto.hash(:sha256, token)})
+    Repo.insert!(%Token{user_id: user.id, type: type, hash: token_hash(token)})
 
     Base.url_encode64(token, padding: false)
   end
+
+  defp token_hash(token), do: :crypto.hash(:sha256, token)
 end
