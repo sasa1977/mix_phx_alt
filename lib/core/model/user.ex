@@ -1,7 +1,5 @@
 defmodule Demo.Core.Model.User do
-  use Ecto.Schema
-
-  @type t :: %__MODULE__{}
+  use Demo.Core.Model.Base
 
   schema "users" do
     field :email, :string

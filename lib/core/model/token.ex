@@ -1,8 +1,5 @@
 defmodule Demo.Core.Model.Token do
-  use Ecto.Schema
-  alias Demo.Core.Model
-
-  @type t :: %__MODULE__{}
+  use Demo.Core.Model.Base
 
   schema "tokens" do
     field :hash, :binary
