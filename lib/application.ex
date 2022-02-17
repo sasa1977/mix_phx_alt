@@ -1,5 +1,5 @@
 defmodule Demo.Application do
-  use Boundary, deps: [Demo.{Core, Config, Interface}]
+  use Boundary, deps: [Demo.{Core, Config, Helpers, Interface}]
   use Application
 
   @impl Application
@@ -23,7 +23,7 @@ defmodule Demo.Application do
     # In prod mix env we'll prime the unset OS env vars from the local config script. This is used
     # to simplify running the prod-compiled version on a local dev machine.
     # See `Mix.Tasks.Demo.Gen.DefaultProdConfig` for details.
-    for true <- [Demo.Config.mix_env() == :prod],
+    for true <- [Demo.Helpers.mix_env() == :prod],
         config_file = "#{Application.app_dir(:demo, "priv")}/local_prod_config.exs",
         {:ok, config} <- [File.read(config_file)],
         {config, _bindings} = Code.eval_string(config),

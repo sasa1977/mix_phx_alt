@@ -1,9 +1,60 @@
-defmodule Demo.Interface.User do
+defmodule Demo.Interface.UserTest do
   use Demo.Test.ConnCase, async: true
+
+  describe "welcome page" do
+    test "is the default page" do
+      assert Routes.user_path(build_conn(), :welcome) == "/"
+    end
+
+    test "redirects to registration if the user is anonymous" do
+      conn = get(build_conn(), "/")
+      assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
+    end
+
+    test "redirects to registration if the token expired" do
+      conn = register!(valid_registration_params())
+
+      sixty_days_ago =
+        NaiveDateTime.utc_now()
+        |> NaiveDateTime.truncate(:second)
+        |> NaiveDateTime.add(-60 * 24 * 60 * 60)
+
+      Demo.Core.Repo.get_by!(Demo.Core.Model.Token, user_id: conn.assigns.current_user.id)
+      |> Ecto.Changeset.change(inserted_at: sixty_days_ago)
+      |> Demo.Core.Repo.update!()
+
+      conn = conn |> recycle() |> get("/")
+      assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
+    end
+
+    test "greets the authenticated user" do
+      conn = register!(valid_registration_params()) |> recycle() |> get("/")
+      assert html_response(conn, 200) =~ "Welcome"
+    end
+  end
+
+  describe "registration form" do
+    test "is rendered for a guest" do
+      conn = get(build_conn(), "/registration_form")
+      response = html_response(conn, 200)
+      assert response =~ ~s/<input id="user_email" name="user[email]/
+      assert response =~ ~s/<input id="user_password" name="user[password]/
+    end
+
+    test "redirects if the user is authenticated" do
+      conn = register!(valid_registration_params()) |> recycle() |> get("/registration_form")
+      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
+    end
+  end
 
   describe "registration" do
     test "succeeds with valid parameters" do
-      assert register(valid_registration_params()) == :ok
+      params = valid_registration_params()
+      assert {:ok, conn} = register(params)
+
+      assert conn.resp_body =~ "User created successfully."
+      assert Demo.Interface.Auth.current_user(conn).email == params.email
+      assert conn.request_path == Routes.user_path(conn, :welcome)
     end
 
     test "rejects invalid password" do
@@ -48,19 +99,19 @@ defmodule Demo.Interface.User do
 
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)
 
-  defp register!(params), do: :ok = register(params)
+  defp register!(params) do
+    {:ok, user} = register(params)
+    user
+  end
 
   defp register(params) do
     params = Map.merge(valid_registration_params(), Map.new(params))
     conn = post(build_conn(), "/register", %{user: Map.new(params)})
 
-    with :ok <- validate(conn.status == 302, conn),
-         redirected_to = redirected_to(conn),
-         :ok <- validate(redirected_to == "/", conn),
-         conn = conn |> recycle() |> get(redirected_to),
-         :ok <- validate(conn.status == 200, conn) do
-      response_content_type(conn, :html)
-      validate(conn.resp_body =~ "User created successfully.", conn)
+    with :ok <- validate(conn.status == 302, conn) do
+      conn = conn |> recycle() |> get(redirected_to(conn))
+      assert conn.status == 200
+      {:ok, conn}
     end
   end
 

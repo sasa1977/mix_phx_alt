@@ -1,11 +1,40 @@
 defmodule Demo.Core.User do
-  import Ecto.Changeset
+  import Demo.Helpers
 
-  alias Demo.Core.Model.User
+  import Ecto.Changeset
+  import Ecto.Query
+
+  alias Demo.Core.Model.{Token, User}
   alias Demo.Core.Repo
 
-  @spec register(String.t(), String.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  @type token :: String.t()
+
+  @doc """
+  Registers a new user.
+
+  On success, this function returns the new authentication token for the created user. The returned
+  token is url-encoded. For security reasons, only the hash of the token is persisted in the
+  database, while the raw value isn't stored anywhere.
+  """
+  @spec register(String.t(), String.t()) :: {:ok, token} | {:error, Ecto.Changeset.t()}
   def register(email, password) do
+    Repo.transact(fn ->
+      with {:ok, user} <- store_user(email, password),
+           do: {:ok, create_token!(user, :auth)}
+    end)
+  end
+
+  @spec from_auth_token(token) :: User.t() | nil
+  def from_auth_token(encoded) do
+    with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
+         %Token{} = token <-
+           Repo.one(where(Token, hash: ^token_hash(raw), type: :auth) |> preload(:user)),
+         :ok <- validate(Token.valid?(token)),
+         do: token.user,
+         else: (_ -> nil)
+  end
+
+  defp store_user(email, password) do
     %User{}
     |> change(email: email)
     |> validate_email()
@@ -27,7 +56,7 @@ defmodule Demo.Core.User do
 
     with :ok <- validate(is_bitstring(password) and password != "", "can't be blank"),
          length = String.length(password),
-         min_length = if(Demo.Config.mix_env() == :dev, do: 4, else: 12),
+         min_length = if(Demo.Helpers.mix_env() == :dev, do: 4, else: 12),
          max_length = 72,
          :ok <- validate(length >= min_length, "should be at least #{min_length} characters"),
          :ok <- validate(length <= max_length, "should be at most #{max_length} characters"),
@@ -35,6 +64,15 @@ defmodule Demo.Core.User do
          else: ({:error, reason} -> changeset |> add_error(:password, reason))
   end
 
-  defp validate(true, _reason), do: :ok
-  defp validate(false, reason), do: {:error, reason}
+  defp create_token!(user, type) do
+    token = :crypto.strong_rand_bytes(32)
+
+    # we're only storing the token hash, to prevent the people with the database access from the
+    # unauthorized usage of the token
+    Repo.insert!(%Token{user_id: user.id, type: type, hash: token_hash(token)})
+
+    Base.url_encode64(token, padding: false)
+  end
+
+  defp token_hash(token), do: :crypto.hash(:sha256, token)
 end
