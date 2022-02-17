@@ -6,7 +6,7 @@ defmodule Demo.Interface.User.Controller do
   alias Demo.Core.{Model, User}
   alias Demo.Interface.Auth
 
-  def welcome(conn, _params), do: render(conn, :welcome, user: Auth.current_user(conn))
+  def welcome(conn, _params), do: render(conn, :welcome)
 
   def registration_form(conn, _params),
     do: render(conn, :registration_form, changeset: Ecto.Changeset.change(%Model.User{}))
