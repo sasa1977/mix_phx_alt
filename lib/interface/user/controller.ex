@@ -2,12 +2,15 @@
 
 defmodule Demo.Interface.User.Controller do
   use Demo.Interface.Controller
-  alias Demo.Interface.Auth
 
+  alias Demo.Interface.Auth
   alias Demo.Core.{Model, User}
 
-  def registration_form(conn, _params),
-    do: render(conn, :registration_form, changeset: Ecto.Changeset.change(%Model.User{}))
+  def registration_form(conn, _params) do
+    if is_nil(Auth.current_user(conn)),
+      do: render(conn, :registration_form, changeset: Ecto.Changeset.change(%Model.User{})),
+      else: redirect(conn, to: Routes.user_path(conn, :welcome))
+  end
 
   def welcome(conn, _params) do
     if user = Auth.current_user(conn),
@@ -21,7 +24,7 @@ defmodule Demo.Interface.User.Controller do
         conn
         |> Auth.set_token(token)
         |> put_flash(:info, "User created successfully.")
-        |> redirect(to: "/")
+        |> redirect(to: Routes.user_path(conn, :welcome))
 
       {:error, changeset} ->
         render(conn, :registration_form, changeset: changeset)
