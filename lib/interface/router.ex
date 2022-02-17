@@ -34,6 +34,7 @@ defmodule Demo.Interface.Router do
     pipe_through [:browser, :require_user]
 
     get "/", User.Controller, :welcome, as: :user
+    delete "/logout", User.Controller, :logout, as: :user
   end
 
   if Mix.env() in [:dev, :test] do

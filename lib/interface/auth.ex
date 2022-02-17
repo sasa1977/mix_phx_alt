@@ -1,6 +1,6 @@
 defmodule Demo.Interface.Auth do
   import Phoenix.Controller
-  import Plug.Conn
+  import Plug.Conn, except: [clear_session: 1]
 
   # credo:disable-for-next-line Credo.Check.Readability.AliasAs
   alias Demo.Interface.Router.Helpers, as: Routes
@@ -16,19 +16,22 @@ defmodule Demo.Interface.Auth do
     assign(conn, :current_user, current_user)
   end
 
+  @spec clear_current_user(Plug.Conn.t()) :: Plug.Conn.t()
+  def clear_current_user(conn), do: assign(conn, :current_user, nil)
+
   @spec current_user(Plug.Conn.t()) :: Demo.Core.Model.User.t() | nil
   def current_user(conn), do: conn.assigns.current_user
 
   @spec require_user(Plug.Conn.t(), any) :: Plug.Conn.t()
   def require_user(conn, _opts) do
-    if conn.assigns.current_user,
+    if current_user(conn),
       do: conn,
       else: conn |> redirect(to: Routes.user_path(conn, :registration_form)) |> halt()
   end
 
   @spec require_anonymous(Plug.Conn.t(), any) :: Plug.Conn.t()
   def require_anonymous(conn, _opts) do
-    if is_nil(conn.assigns.current_user),
+    if is_nil(current_user(conn)),
       do: conn,
       else: conn |> redirect(to: Routes.user_path(conn, :welcome)) |> halt()
   end

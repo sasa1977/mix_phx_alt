@@ -23,4 +23,11 @@ defmodule Demo.Interface.User.Controller do
         render(conn, :registration_form, changeset: changeset)
     end
   end
+
+  def logout(conn, _params) do
+    conn
+    |> clear_session()
+    |> Auth.clear_current_user()
+    |> redirect(to: Routes.user_path(conn, :registration_form))
+  end
 end

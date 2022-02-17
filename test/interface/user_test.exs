@@ -1,6 +1,8 @@
 defmodule Demo.Interface.UserTest do
   use Demo.Test.ConnCase, async: true
 
+  alias Demo.Interface.Auth
+
   describe "welcome page" do
     test "is the default page" do
       assert Routes.user_path(build_conn(), :welcome) == "/"
@@ -53,7 +55,7 @@ defmodule Demo.Interface.UserTest do
       assert {:ok, conn} = register(params)
 
       assert conn.resp_body =~ "User created successfully."
-      assert Demo.Interface.Auth.current_user(conn).email == params.email
+      assert Auth.current_user(conn).email == params.email
       assert conn.request_path == Routes.user_path(conn, :welcome)
     end
 
@@ -95,6 +97,17 @@ defmodule Demo.Interface.UserTest do
       assert {:error, conn} = register(registration_params)
       assert "has already been taken" in errors(conn, :email)
     end
+  end
+
+  test "logout clears the current user" do
+    conn =
+      register!(valid_registration_params())
+      |> recycle()
+      |> delete("/logout")
+
+    assert redirected_to(conn) == "/registration_form"
+    assert Plug.Conn.get_session(conn) == %{}
+    assert is_nil(Auth.current_user(conn))
   end
 
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)
