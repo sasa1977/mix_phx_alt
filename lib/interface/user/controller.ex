@@ -2,6 +2,7 @@
 
 defmodule Demo.Interface.User.Controller do
   use Demo.Interface.Controller
+  alias Demo.Interface.Auth
 
   alias Demo.Core.{Model, User}
 
@@ -10,8 +11,9 @@ defmodule Demo.Interface.User.Controller do
 
   def register(conn, %{"user" => %{"email" => email, "password" => password}}) do
     case User.register(email, password) do
-      {:ok, _token} ->
+      {:ok, token} ->
         conn
+        |> Auth.set_token(token)
         |> put_flash(:info, "User created successfully.")
         |> redirect(to: "/")
 
