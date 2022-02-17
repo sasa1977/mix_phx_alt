@@ -1,4 +1,4 @@
-defmodule Demo.Interface.User do
+defmodule Demo.Interface.UserTest do
   use Demo.Test.ConnCase, async: true
 
   describe "welcome page" do
