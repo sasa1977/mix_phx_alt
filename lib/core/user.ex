@@ -19,10 +19,8 @@ defmodule Demo.Core.User do
   @spec register(String.t(), String.t()) :: {:ok, token} | {:error, Ecto.Changeset.t()}
   def register(email, password) do
     Repo.transact(fn ->
-      with {:ok, user} <- store_user(email, password) do
-        token = create_token!(user, :auth)
-        {:ok, token}
-      end
+      with {:ok, user} <- store_user(email, password),
+           do: {:ok, create_token!(user, :auth)}
     end)
   end
 
