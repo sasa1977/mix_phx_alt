@@ -98,14 +98,18 @@ defmodule Demo.Interface.UserTest do
   end
 
   test "logout clears the current user" do
-    conn =
-      register!(valid_registration_params())
-      |> recycle()
-      |> delete("/logout")
+    logged_in_conn = register!(valid_registration_params())
 
-    assert redirected_to(conn) == "/registration_form"
-    assert Plug.Conn.get_session(conn) == %{}
-    assert is_nil(conn.assigns.current_user)
+    logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
+
+    assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :registration_form)
+    assert Plug.Conn.get_session(logged_out_conn) == %{}
+    assert is_nil(logged_out_conn.assigns.current_user)
+
+    # try to reuse the previously logged-in conn with the old token
+    conn = logged_in_conn |> recycle() |> get(Routes.user_path(logged_in_conn, :welcome))
+    # we expect this to redirect us, since the old token should have been deleted
+    assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
   end
 
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)

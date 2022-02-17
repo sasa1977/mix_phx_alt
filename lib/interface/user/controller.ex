@@ -23,6 +23,8 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def logout(conn, _params) do
+    conn |> get_session(:user_token) |> User.delete_auth_token()
+
     conn
     |> clear_session()
     |> assign(:current_user, nil)
