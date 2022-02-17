@@ -20,7 +20,6 @@ defmodule Demo.Test.ConnCase do
   setup tags do
     pid = SQL.Sandbox.start_owner!(Demo.Core.Repo, shared: not tags[:async])
     on_exit(fn -> SQL.Sandbox.stop_owner(pid) end)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 
   @spec unique(String.t()) :: String.t()
