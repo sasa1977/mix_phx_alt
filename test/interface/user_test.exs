@@ -49,7 +49,7 @@ defmodule Demo.Interface.UserTest do
       params = valid_registration_params()
       assert {:ok, conn} = register(params)
 
-      assert conn.resp_body =~ "User created successfully."
+      assert conn.resp_body =~ "User activated successfully."
       assert conn.assigns.current_user.email == params.email
       assert conn.request_path == Routes.user_path(conn, :welcome)
     end
@@ -135,10 +135,25 @@ defmodule Demo.Interface.UserTest do
     params = Map.merge(valid_registration_params(), Map.new(params))
     conn = post(build_conn(), "/register", %{user: Map.new(params)})
 
-    with :ok <- validate(conn.status == 302, conn) do
+    with :ok <- validate(conn.status == 302, conn),
+         activation_path = activation_path(params.email),
+         :ok <- validate(activation_path != nil, :mail_not_sent),
+         conn = get(build_conn(), activation_path),
+         :ok <- validate(conn.status == 302, conn) do
       conn = conn |> recycle() |> get(redirected_to(conn))
       assert conn.status == 200
       {:ok, conn}
+    end
+  end
+
+  defp activation_path(email) do
+    receive do
+      {:email, %{to: [{nil, ^email}], subject: "Activate your account"} = activation_email} ->
+        ~r[http://.*(?<activation_path>/confirm_email/.*)]
+        |> Regex.named_captures(activation_email.text_body)
+        |> Map.fetch!("activation_path")
+    after
+      100 -> nil
     end
   end
 
