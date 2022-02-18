@@ -39,10 +39,11 @@ defmodule Demo.Interface.Router do
   if Mix.env() in [:dev, :test] do
     import Phoenix.LiveDashboard.Router
 
-    scope "/" do
+    scope "/dev" do
       pipe_through :browser
 
       live_dashboard "/dashboard", metrics: Demo.Interface.Telemetry
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 end
