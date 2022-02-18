@@ -11,7 +11,8 @@ defmodule Demo.Core.User do
 
   defmacrop token_valid?(token) do
     quote do
-      unquote(token).type == :auth and unquote(token).inserted_at > ago(60, "day")
+      (unquote(token).type == :auth and unquote(token).inserted_at > ago(60, "day")) or
+        (unquote(token).type == :confirm_email and unquote(token).inserted_at > ago(7, "day"))
     end
   end
 
@@ -34,6 +35,25 @@ defmodule Demo.Core.User do
           "Activate your account",
           "Activate your account at #{url_fun.(token)}"
         )
+      end
+    end)
+  end
+
+  @spec confirm_email(token) :: {:ok, auth_token :: token} | :error
+  def confirm_email(encoded) do
+    Repo.transact(fn ->
+      with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
+           %Token{} = token <- valid_token(token_hash(raw), :confirm_email) do
+        user =
+          Repo.one!(Ecto.assoc(token, :user))
+          |> change(confirmed_at: DateTime.utc_now())
+          |> Repo.update!()
+
+        Repo.delete!(token)
+
+        {:ok, create_token!(user, :auth)}
+      else
+        _ -> :error
       end
     end)
   end

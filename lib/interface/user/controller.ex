@@ -11,14 +11,26 @@ defmodule Demo.Interface.User.Controller do
 
   def register(conn, %{"user" => %{"email" => email, "password" => password}}) do
     case User.register(email, password, &Routes.user_url(conn, :confirm_email, &1)) do
-      {:ok, token} ->
+      :ok ->
         conn
-        |> put_session(:user_token, token)
         |> put_flash(:info, "User created successfully.")
-        |> redirect(to: Routes.user_path(conn, :welcome))
+        |> redirect(to: Routes.user_path(conn, :registration_form))
 
       {:error, changeset} ->
         render(conn, :registration_form, changeset: changeset)
+    end
+  end
+
+  def confirm_email(conn, %{"token" => token}) do
+    case User.confirm_email(token) do
+      {:ok, token} ->
+        conn
+        |> put_session(:user_token, token)
+        |> put_flash(:info, "User activated successfully.")
+        |> redirect(to: Routes.user_path(conn, :welcome))
+
+      :error ->
+        text(conn, "Activation error")
     end
   end
 
