@@ -29,7 +29,9 @@ defmodule Demo.Interface.UserTest do
 
     test "greets the authenticated user" do
       conn = register!(valid_registration_params()) |> recycle() |> get("/")
-      assert html_response(conn, 200) =~ "Welcome"
+      response = html_response(conn, 200)
+      assert response =~ "Welcome"
+      assert response =~ "Log out"
     end
   end
 
@@ -39,6 +41,7 @@ defmodule Demo.Interface.UserTest do
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_email" name="user[email]/
       assert response =~ ~s/<input id="user_password" name="user[password]/
+      refute response =~ "Log out"
     end
 
     test "redirects if the user is authenticated" do
