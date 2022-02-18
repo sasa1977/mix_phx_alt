@@ -12,6 +12,6 @@ defmodule Demo.Core.Model.Token do
   @spec valid?(t) :: boolean
   def valid?(%__MODULE__{type: :auth} = token) do
     sixty_days_in_sec = 60 * 24 * 60 * 60
-    NaiveDateTime.diff(NaiveDateTime.utc_now(), token.inserted_at, :second) < sixty_days_in_sec
+    DateTime.diff(DateTime.utc_now(), token.inserted_at, :second) < sixty_days_in_sec
   end
 end

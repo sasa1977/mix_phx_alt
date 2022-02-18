@@ -51,7 +51,8 @@ defmodule Demo.Core.Repo do
         url: Demo.Config.db_url(),
         pool_size: Demo.Config.db_pool_size(),
         socket_options: if(Demo.Config.db_ipv6(), do: [:inet6], else: []),
-        migration_primary_key: [type: :binary_id]
+        migration_primary_key: [type: :binary_id],
+        migration_timestamps: [type: :utc_datetime_usec]
       )
       |> deep_merge(repo_opts(Demo.Helpers.mix_env()))
 

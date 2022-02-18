@@ -14,10 +14,7 @@ defmodule Demo.Interface.UserTest do
     test "redirects to registration if the token expired" do
       conn = register!(valid_registration_params())
 
-      sixty_days_ago =
-        NaiveDateTime.utc_now()
-        |> NaiveDateTime.truncate(:second)
-        |> NaiveDateTime.add(-60 * 24 * 60 * 60)
+      sixty_days_ago = DateTime.utc_now() |> DateTime.add(-60 * 24 * 60 * 60)
 
       Demo.Core.Repo.get_by!(Demo.Core.Model.Token, user_id: conn.assigns.current_user.id)
       |> Ecto.Changeset.change(inserted_at: sixty_days_ago)
