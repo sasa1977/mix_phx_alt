@@ -10,7 +10,7 @@ defmodule Demo.Interface.User.Controller do
     do: render(conn, :registration_form, changeset: Ecto.Changeset.change(%Model.User{}))
 
   def register(conn, %{"user" => %{"email" => email, "password" => password}}) do
-    case User.register(email, password) do
+    case User.register(email, password, &Routes.user_url(conn, :confirm_email, &1)) do
       {:ok, token} ->
         conn
         |> put_session(:user_token, token)

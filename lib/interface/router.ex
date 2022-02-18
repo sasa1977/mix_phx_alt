@@ -36,6 +36,13 @@ defmodule Demo.Interface.Router do
     delete "/logout", User.Controller, :logout, as: :user
   end
 
+  # routes where logged-in status is irrelevant
+  scope "/", Demo.Interface do
+    pipe_through [:browser]
+
+    get "/confirm_email/:token", User.Controller, :confirm_email, as: :user
+  end
+
   if Mix.env() in [:dev, :test] do
     import Phoenix.LiveDashboard.Router
 

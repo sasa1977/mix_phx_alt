@@ -22,11 +22,19 @@ defmodule Demo.Core.User do
   token is url-encoded. For security reasons, only the hash of the token is persisted in the
   database, while the raw value isn't stored anywhere.
   """
-  @spec register(String.t(), String.t()) :: {:ok, token} | {:error, Ecto.Changeset.t()}
-  def register(email, password) do
+  @spec register(String.t(), String.t(), (token -> String.t())) ::
+          :ok | {:error, Ecto.Changeset.t()}
+  def register(email, password, url_fun) do
     Repo.transact(fn ->
-      with {:ok, user} <- store_user(email, password),
-           do: {:ok, create_token!(user, :auth)}
+      with {:ok, user} <- store_user(email, password) do
+        token = create_token!(user, :confirm_email, %{email: user.email})
+
+        Demo.Core.Mailer.send(
+          user.email,
+          "Activate your account",
+          "Activate your account at #{url_fun.(token)}"
+        )
+      end
     end)
   end
 
@@ -83,12 +91,12 @@ defmodule Demo.Core.User do
          else: ({:error, reason} -> changeset |> add_error(:password, reason))
   end
 
-  defp create_token!(user, type) do
+  defp create_token!(user, type, payload \\ %{}) do
     token = :crypto.strong_rand_bytes(32)
 
     # we're only storing the token hash, to prevent the people with the database access from the
     # unauthorized usage of the token
-    Repo.insert!(%Token{user_id: user.id, type: type, hash: token_hash(token)})
+    Repo.insert!(%Token{user_id: user.id, type: type, hash: token_hash(token), payload: payload})
 
     Base.url_encode64(token, padding: false)
   end
