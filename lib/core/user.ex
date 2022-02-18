@@ -9,6 +9,12 @@ defmodule Demo.Core.User do
 
   @type token :: String.t()
 
+  defmacrop token_valid?(token) do
+    quote do
+      unquote(token).type == :auth and unquote(token).inserted_at > ago(60, "day")
+    end
+  end
+
   @doc """
   Registers a new user.
 
@@ -27,10 +33,8 @@ defmodule Demo.Core.User do
   @spec from_auth_token(token) :: User.t() | nil
   def from_auth_token(encoded) do
     with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
-         %Token{} = token <-
-           Repo.one(where(Token, hash: ^token_hash(raw), type: :auth) |> preload(:user)),
-         :ok <- validate(Token.valid?(token)),
-         do: token.user,
+         %Token{} = token <- valid_token(token_hash(raw), :auth),
+         do: Repo.one!(Ecto.assoc(token, :user)),
          else: (_ -> nil)
   end
 
@@ -39,6 +43,12 @@ defmodule Demo.Core.User do
     hash = encoded |> Base.url_decode64!(padding: false) |> token_hash()
     Repo.delete_all(where(Token, hash: ^hash, type: :auth))
     :ok
+  end
+
+  @spec delete_expired_tokens :: non_neg_integer()
+  def delete_expired_tokens do
+    {deleted_count, _} = Repo.delete_all(from(token in Token, where: not token_valid?(token)))
+    deleted_count
   end
 
   defp store_user(email, password) do
@@ -82,4 +92,12 @@ defmodule Demo.Core.User do
   end
 
   defp token_hash(token), do: :crypto.hash(:sha256, token)
+
+  defp valid_token(hash, type) do
+    Repo.one(
+      from token in Token,
+        where: token_valid?(token),
+        where: [hash: ^hash, type: ^type]
+    )
+  end
 end

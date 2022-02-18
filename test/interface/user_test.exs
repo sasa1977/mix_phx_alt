@@ -1,6 +1,8 @@
 defmodule Demo.Interface.UserTest do
   use Demo.Test.ConnCase, async: true
 
+  import Ecto.Query
+
   describe "welcome page" do
     test "is the default page" do
       assert Routes.user_path(build_conn(), :welcome) == "/"
@@ -13,15 +15,7 @@ defmodule Demo.Interface.UserTest do
 
     test "redirects to registration if the token expired" do
       conn = register!(valid_registration_params())
-
-      sixty_days_ago =
-        NaiveDateTime.utc_now()
-        |> NaiveDateTime.truncate(:second)
-        |> NaiveDateTime.add(-60 * 24 * 60 * 60)
-
-      Demo.Core.Repo.get_by!(Demo.Core.Model.Token, user_id: conn.assigns.current_user.id)
-      |> Ecto.Changeset.change(inserted_at: sixty_days_ago)
-      |> Demo.Core.Repo.update!()
+      expire_token(conn)
 
       conn = conn |> recycle() |> get("/")
       assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
@@ -109,10 +103,25 @@ defmodule Demo.Interface.UserTest do
     assert Plug.Conn.get_session(logged_out_conn) == %{}
     assert is_nil(logged_out_conn.assigns.current_user)
 
-    # try to reuse the previously logged-in conn with the old token
-    conn = logged_in_conn |> recycle() |> get(Routes.user_path(logged_in_conn, :welcome))
-    # we expect this to redirect us, since the old token should have been deleted
-    assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
+    refute still_logged_in?(logged_in_conn)
+  end
+
+  test "periodic token cleanup deletes expired tokens" do
+    conn1 = register!(valid_registration_params())
+
+    conn2 = register!(valid_registration_params())
+    expire_token(conn2)
+
+    Ecto.Adapters.SQL.Sandbox.allow(Demo.Core.Repo, self(), Demo.Core.TokenCleanup)
+    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.TokenCleanup)
+
+    assert Demo.Core.Repo.aggregate(Demo.Core.Model.Token, :count) == 1
+    assert still_logged_in?(conn1)
+  end
+
+  defp still_logged_in?(conn) do
+    conn = conn |> recycle() |> get(Routes.user_path(conn, :welcome))
+    conn.status == 200 and conn.assigns.current_user != nil
   end
 
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)
@@ -135,4 +144,15 @@ defmodule Demo.Interface.UserTest do
 
   defp valid_registration_params,
     do: %{email: "#{unique("username")}@foo.bar", password: "123456789012"}
+
+  defp expire_token(conn) do
+    {1, _} =
+      Demo.Core.Repo.update_all(
+        from(Demo.Core.Model.Token,
+          where: [user_id: ^conn.assigns.current_user.id],
+          update: [set: [inserted_at: ago(60, "day")]]
+        ),
+        []
+      )
+  end
 end
