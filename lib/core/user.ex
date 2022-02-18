@@ -34,7 +34,9 @@ defmodule Demo.Core.User do
   def from_auth_token(encoded) do
     with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
          %Token{} = token <- valid_token(token_hash(raw), :auth),
-         do: Repo.one!(Ecto.assoc(token, :user)),
+         user = Repo.one!(Ecto.assoc(token, :user)),
+         :ok <- validate(user.confirmed_at != nil),
+         do: user,
          else: (_ -> nil)
   end
 
