@@ -3,7 +3,7 @@ defmodule Demo.Core.Model.Token do
 
   schema "tokens" do
     field :hash, :binary
-    field :type, Ecto.Enum, values: [:auth, :confirm_email]
+    field :type, Ecto.Enum, values: [:auth, :activation]
     field :payload, :map
 
     belongs_to :user, Model.User

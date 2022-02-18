@@ -34,7 +34,6 @@ defmodule Demo.Interface.UserTest do
       conn = get(build_conn(), "/registration_form")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_email" name="user[email]/
-      assert response =~ ~s/<input id="user_password" name="user[password]/
       refute response =~ "Log out"
     end
 
@@ -84,14 +83,6 @@ defmodule Demo.Interface.UserTest do
       assert {:error, conn} = register(email: "foo@bar.baz" <> String.duplicate("1", 160))
       assert "should be at most 160 character(s)" in errors(conn, :email)
     end
-
-    test "rejects duplicate mail" do
-      registration_params = valid_registration_params()
-      register!(registration_params)
-
-      assert {:error, conn} = register(registration_params)
-      assert "has already been taken" in errors(conn, :email)
-    end
   end
 
   test "logout clears the current user" do
@@ -133,12 +124,16 @@ defmodule Demo.Interface.UserTest do
 
   defp register(params) do
     params = Map.merge(valid_registration_params(), Map.new(params))
-    conn = post(build_conn(), "/register", %{user: Map.new(params)})
+    conn = post(build_conn(), "/register", %{user: params})
+    assert conn.status == 200
 
-    with :ok <- validate(conn.status == 302, conn),
+    with :ok <- validate(conn.resp_body =~ "Activation email has been sent", conn),
          activation_path = activation_path(params.email),
          :ok <- validate(activation_path != nil, :mail_not_sent),
-         conn = get(build_conn(), activation_path),
+         # render finalize form to set the token into session
+         conn = build_conn() |> get(activation_path),
+         # activate with the given password
+         conn = conn |> recycle() |> post(Routes.user_path(conn, :activate), %{user: params}),
          :ok <- validate(conn.status == 302, conn) do
       conn = conn |> recycle() |> get(redirected_to(conn))
       assert conn.status == 200
@@ -149,11 +144,11 @@ defmodule Demo.Interface.UserTest do
   defp activation_path(email) do
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Activate your account"} = activation_email} ->
-        ~r[http://.*(?<activation_path>/confirm_email/.*)]
+        ~r[http://.*(?<activation_path>/activation_form/.*)]
         |> Regex.named_captures(activation_email.text_body)
         |> Map.fetch!("activation_path")
     after
-      100 -> nil
+      0 -> nil
     end
   end
 

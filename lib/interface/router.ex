@@ -26,6 +26,9 @@ defmodule Demo.Interface.Router do
 
     get "/registration_form", User.Controller, :registration_form, as: :user
     post "/register", User.Controller, :register, as: :user
+
+    get "/activation_form/:token", User.Controller, :activation_form, as: :user
+    post "/activate", User.Controller, :activate, as: :user
   end
 
   # logged-in routes
@@ -34,13 +37,6 @@ defmodule Demo.Interface.Router do
 
     get "/", User.Controller, :welcome, as: :user
     delete "/logout", User.Controller, :logout, as: :user
-  end
-
-  # routes where logged-in status is irrelevant
-  scope "/", Demo.Interface do
-    pipe_through [:browser]
-
-    get "/confirm_email/:token", User.Controller, :confirm_email, as: :user
   end
 
   if Mix.env() in [:dev, :test] do
