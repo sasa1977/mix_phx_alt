@@ -34,6 +34,13 @@ defmodule Demo.Core.User do
          else: (_ -> nil)
   end
 
+  @spec delete_auth_token(token) :: :ok
+  def delete_auth_token(encoded) do
+    hash = encoded |> Base.url_decode64!(padding: false) |> token_hash()
+    Repo.delete_all(where(Token, hash: ^hash, type: :auth))
+    :ok
+  end
+
   defp store_user(email, password) do
     %User{}
     |> change(email: email)

@@ -1,8 +1,7 @@
 defmodule Demo.Interface.Router do
   use Phoenix.Router
 
-  import Demo.Interface.Auth
-
+  import Demo.Interface.User.Plugs
   import Plug.Conn
   import Phoenix.Controller
   import Phoenix.LiveView.Router
@@ -34,6 +33,7 @@ defmodule Demo.Interface.Router do
     pipe_through [:browser, :require_user]
 
     get "/", User.Controller, :welcome, as: :user
+    delete "/logout", User.Controller, :logout, as: :user
   end
 
   if Mix.env() in [:dev, :test] do

@@ -29,7 +29,9 @@ defmodule Demo.Interface.UserTest do
 
     test "greets the authenticated user" do
       conn = register!(valid_registration_params()) |> recycle() |> get("/")
-      assert html_response(conn, 200) =~ "Welcome"
+      response = html_response(conn, 200)
+      assert response =~ "Welcome"
+      assert response =~ "Log out"
     end
   end
 
@@ -39,6 +41,7 @@ defmodule Demo.Interface.UserTest do
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_email" name="user[email]/
       assert response =~ ~s/<input id="user_password" name="user[password]/
+      refute response =~ "Log out"
     end
 
     test "redirects if the user is authenticated" do
@@ -53,7 +56,7 @@ defmodule Demo.Interface.UserTest do
       assert {:ok, conn} = register(params)
 
       assert conn.resp_body =~ "User created successfully."
-      assert Demo.Interface.Auth.current_user(conn).email == params.email
+      assert conn.assigns.current_user.email == params.email
       assert conn.request_path == Routes.user_path(conn, :welcome)
     end
 
@@ -95,6 +98,21 @@ defmodule Demo.Interface.UserTest do
       assert {:error, conn} = register(registration_params)
       assert "has already been taken" in errors(conn, :email)
     end
+  end
+
+  test "logout clears the current user" do
+    logged_in_conn = register!(valid_registration_params())
+
+    logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
+
+    assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :registration_form)
+    assert Plug.Conn.get_session(logged_out_conn) == %{}
+    assert is_nil(logged_out_conn.assigns.current_user)
+
+    # try to reuse the previously logged-in conn with the old token
+    conn = logged_in_conn |> recycle() |> get(Routes.user_path(logged_in_conn, :welcome))
+    # we expect this to redirect us, since the old token should have been deleted
+    assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
   end
 
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)

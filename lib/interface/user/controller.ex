@@ -2,11 +2,9 @@
 
 defmodule Demo.Interface.User.Controller do
   use Demo.Interface.Controller
-
   alias Demo.Core.{Model, User}
-  alias Demo.Interface.Auth
 
-  def welcome(conn, _params), do: render(conn, :welcome, user: Auth.current_user(conn))
+  def welcome(conn, _params), do: render(conn, :welcome)
 
   def registration_form(conn, _params),
     do: render(conn, :registration_form, changeset: Ecto.Changeset.change(%Model.User{}))
@@ -15,12 +13,21 @@ defmodule Demo.Interface.User.Controller do
     case User.register(email, password) do
       {:ok, token} ->
         conn
-        |> Auth.set_token(token)
+        |> put_session(:user_token, token)
         |> put_flash(:info, "User created successfully.")
         |> redirect(to: Routes.user_path(conn, :welcome))
 
       {:error, changeset} ->
         render(conn, :registration_form, changeset: changeset)
     end
+  end
+
+  def logout(conn, _params) do
+    conn |> get_session(:user_token) |> User.delete_auth_token()
+
+    conn
+    |> clear_session()
+    |> assign(:current_user, nil)
+    |> redirect(to: Routes.user_path(conn, :registration_form))
   end
 end
