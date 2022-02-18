@@ -50,7 +50,8 @@ defmodule Demo.Core.Repo do
       |> deep_merge(
         url: Demo.Config.db_url(),
         pool_size: Demo.Config.db_pool_size(),
-        socket_options: if(Demo.Config.db_ipv6(), do: [:inet6], else: [])
+        socket_options: if(Demo.Config.db_ipv6(), do: [:inet6], else: []),
+        migration_primary_key: [type: :binary_id]
       )
       |> deep_merge(repo_opts(Demo.Helpers.mix_env()))
 
