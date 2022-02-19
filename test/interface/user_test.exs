@@ -166,8 +166,8 @@ defmodule Demo.Interface.UserTest do
     conn1 = register!()
     finish_path = start_registration!()
 
-    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.TokenCleanup)
-    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.TokenCleanup)
+    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.User.TokenCleanup)
+    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.User.TokenCleanup)
 
     assert Repo.aggregate(Model.Token, :count) == 2
 

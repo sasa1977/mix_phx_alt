@@ -90,12 +90,6 @@ defmodule Demo.Core.User do
     :ok
   end
 
-  @spec delete_expired_tokens :: non_neg_integer()
-  def delete_expired_tokens do
-    {deleted_count, _} = Repo.delete_all(invalid_tokens_query())
-    deleted_count
-  end
-
   defp store_user(email, password) do
     %User{}
     |> change(email: email)
@@ -163,6 +157,11 @@ defmodule Demo.Core.User do
          do: {:ok, token}
   end
 
+  defp delete_expired_tokens do
+    {deleted_count, _} = Repo.delete_all(invalid_tokens_query())
+    deleted_count
+  end
+
   defmacrop token_valid?(token) do
     Token.validities()
     |> Enum.map(fn {type, validity} ->
@@ -176,4 +175,19 @@ defmodule Demo.Core.User do
 
   defp valid_tokens_query, do: from(token in Token, where: token_valid?(token))
   defp invalid_tokens_query, do: from(token in Token, where: not token_valid?(token))
+
+  @doc false
+  @spec child_spec(any) :: Supervisor.child_spec()
+  def child_spec(_arg), do: token_cleanup()
+
+  defp token_cleanup do
+    Periodic.child_spec(
+      id: __MODULE__.TokenCleanup,
+      name: __MODULE__.TokenCleanup,
+      every: :timer.hours(1),
+      on_overlap: :stop_previous,
+      run: &delete_expired_tokens/0,
+      mode: if(Demo.Helpers.mix_env() == :test, do: :manual, else: :auto)
+    )
+  end
 end
