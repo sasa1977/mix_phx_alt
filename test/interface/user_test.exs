@@ -198,7 +198,7 @@ defmodule Demo.Interface.UserTest do
     conn = post(build_conn(), "/start_registration", %{user: Map.take(params, [:email])})
     assert conn.status == 200
 
-    if conn.resp_body =~ "Activation email has been sent",
+    if conn.resp_body =~ "The email with further instructions has been sent to #{params.email}",
       do: {:ok, finish_path(params.email)},
       else: {:error, conn}
   end
@@ -227,9 +227,9 @@ defmodule Demo.Interface.UserTest do
 
   defp finish_path(email) do
     receive do
-      {:email, %{to: [{nil, ^email}], subject: "Activate your account"} = activation_email} ->
+      {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
         ~r[http://.*(?<finish_path>/finish_registration_form/.*)]
-        |> Regex.named_captures(activation_email.text_body)
+        |> Regex.named_captures(registration_email.text_body)
         |> Map.fetch!("finish_path")
     after
       0 -> nil

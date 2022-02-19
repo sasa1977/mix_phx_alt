@@ -38,8 +38,8 @@ defmodule Demo.Core.User do
 
         Demo.Core.Mailer.send(
           email,
-          "Activate your account",
-          "Activate your account at #{url_fun.(token)}"
+          "Registration",
+          "To create the account visit #{url_fun.(token)}"
         )
       end
 
