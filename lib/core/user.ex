@@ -163,31 +163,17 @@ defmodule Demo.Core.User do
          do: {:ok, token}
   end
 
-  defp valid_tokens_query do
-    Enum.reduce(
-      Token.validities(),
-      Token,
-      fn {type, validity}, query ->
-        or_where(
-          query,
-          [token],
-          token.type == ^type and token.inserted_at > ago(^validity, "day")
-        )
+  defmacrop token_valid?(token) do
+    Token.validities()
+    |> Enum.map(fn {type, validity} ->
+      quote do
+        unquote(token).type == unquote(type) and
+          unquote(token).inserted_at > ago(unquote(validity), "day")
       end
-    )
+    end)
+    |> Enum.reduce(&quote(do: unquote(&2) or unquote(&1)))
   end
 
-  defp invalid_tokens_query do
-    Enum.reduce(
-      Token.validities(),
-      Token,
-      fn {type, validity}, query ->
-        or_where(
-          query,
-          [token],
-          token.type == ^type and token.inserted_at < ago(^validity, "day")
-        )
-      end
-    )
-  end
+  defp valid_tokens_query, do: from(token in Token, where: token_valid?(token))
+  defp invalid_tokens_query, do: from(token in Token, where: not token_valid?(token))
 end
