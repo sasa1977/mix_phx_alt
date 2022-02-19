@@ -66,8 +66,7 @@ defmodule Demo.Core.User do
           {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
   def finish_registration(confirm_email_token, password) do
     Repo.transact(fn ->
-      with {:ok, decoded_token} <- Base.url_decode64(confirm_email_token, padding: false),
-           token = valid_token(token_hash(decoded_token), :confirm_email),
+      with {:ok, token} <- fetch_token(confirm_email_token, :confirm_email),
            :ok <- validate(token != nil),
            {:ok, user} <- store_user(Map.fetch!(token.payload, "email"), password) do
         # confirm_email is a one-time token, so we're deleting it now
@@ -85,17 +84,16 @@ defmodule Demo.Core.User do
   end
 
   @spec authenticate(auth_token) :: User.t() | nil
-  def authenticate(encoded) do
-    with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
-         %Token{} = token <- valid_token(token_hash(raw), :auth),
-         do: Repo.one!(Ecto.assoc(token, :user)),
-         else: (_ -> nil)
+  def authenticate(auth_token) do
+    case fetch_token(auth_token, :auth) do
+      {:ok, token} -> Repo.one!(Ecto.assoc(token, :user))
+      :error -> nil
+    end
   end
 
   @spec logout(auth_token) :: :ok
-  def logout(encoded) do
-    hash = encoded |> Base.url_decode64!(padding: false) |> token_hash()
-    Repo.delete_all(where(Token, hash: ^hash, type: :auth))
+  def logout(auth_token) do
+    Repo.delete_all(where(Token, hash: ^token_hash!(auth_token), type: :auth))
     :ok
   end
 
@@ -140,27 +138,41 @@ defmodule Demo.Core.User do
   end
 
   defp create_token!(user, type, payload \\ %{}) do
-    token = :crypto.strong_rand_bytes(32)
+    token_bytes = :crypto.strong_rand_bytes(32)
+    token = Base.url_encode64(token_bytes, padding: false)
 
     # we're only storing the token hash, to prevent the people with the database access from the
     # unauthorized usage of the token
     Repo.insert!(%Token{
       user_id: user && user.id,
       type: type,
-      hash: token_hash(token),
+      hash: token_hash!(token),
       payload: payload
     })
 
-    Base.url_encode64(token, padding: false)
+    token
   end
 
-  defp token_hash(token), do: :crypto.hash(:sha256, token)
+  defp token_hash!(token) do
+    {:ok, hash} = token_hash(token)
+    hash
+  end
 
-  defp valid_token(hash, type) do
-    Repo.one(
-      from token in Token,
-        where: token_valid?(token),
-        where: [hash: ^hash, type: ^type]
-    )
+  defp token_hash(token) do
+    with {:ok, token_bytes} <- Base.url_decode64(token, padding: false),
+         do: {:ok, :crypto.hash(:sha256, token_bytes)}
+  end
+
+  defp fetch_token(token, type) do
+    with {:ok, token_hash} <- token_hash(token) do
+      if token =
+           Repo.one(
+             from token in Token,
+               where: token_valid?(token),
+               where: [hash: ^token_hash, type: ^type]
+           ),
+         do: {:ok, token},
+         else: :error
+    end
   end
 end
