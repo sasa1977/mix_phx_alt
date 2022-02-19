@@ -26,6 +26,8 @@ config :phoenix,
   plug_init_mode: if(config_env() == :prod, do: :compile, else: :runtime),
   stacktrace_depth: if(config_env() == :dev, do: 20)
 
+config :swoosh, :api_client, false
+
 # demo app
 
 config :demo,

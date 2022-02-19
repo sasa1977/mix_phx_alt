@@ -47,6 +47,7 @@ defmodule Demo.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, ">= 0.0.0"},
       {:provider, github: "verybigthings/provider"},
+      {:swoosh, "~> 1.6"},
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"}
     ]

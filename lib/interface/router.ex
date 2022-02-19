@@ -24,8 +24,11 @@ defmodule Demo.Interface.Router do
   scope "/", Demo.Interface do
     pipe_through [:browser, :require_anonymous]
 
-    get "/registration_form", User.Controller, :registration_form, as: :user
-    post "/register", User.Controller, :register, as: :user
+    get "/start_registration_form", User.Controller, :start_registration_form, as: :user
+    post "/start_registration", User.Controller, :start_registration, as: :user
+
+    get "/finish_registration_form/:token", User.Controller, :finish_registration_form, as: :user
+    post "/finish_registration", User.Controller, :finish_registration, as: :user
   end
 
   # logged-in routes
@@ -39,10 +42,11 @@ defmodule Demo.Interface.Router do
   if Mix.env() in [:dev, :test] do
     import Phoenix.LiveDashboard.Router
 
-    scope "/" do
+    scope "/dev" do
       pipe_through :browser
 
       live_dashboard "/dashboard", metrics: Demo.Interface.Telemetry
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 end

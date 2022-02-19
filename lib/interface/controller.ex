@@ -9,6 +9,8 @@ defmodule Demo.Interface.Controller do
       alias Demo.Interface.Router.Helpers, as: Routes
 
       plug :put_layout, {Demo.Interface.Layout.View, :app}
+
+      action_fallback Demo.Interface.Error.Controller
     end
   end
 end
