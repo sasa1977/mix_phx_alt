@@ -11,13 +11,6 @@ defmodule Demo.Core.User do
   @type auth_token :: String.t()
   @type finish_registration_url_builder :: (confirm_email_token -> String.t())
 
-  defmacrop(token_valid?(token)) do
-    quote do
-      (unquote(token).type == :auth and unquote(token).inserted_at > ago(60, "day")) or
-        (unquote(token).type == :confirm_email and unquote(token).inserted_at > ago(7, "day"))
-    end
-  end
-
   @doc """
   Starts the registration process.
 
@@ -99,7 +92,7 @@ defmodule Demo.Core.User do
 
   @spec delete_expired_tokens :: non_neg_integer()
   def delete_expired_tokens do
-    {deleted_count, _} = Repo.delete_all(from(token in Token, where: not token_valid?(token)))
+    {deleted_count, _} = Repo.delete_all(invalid_tokens_query())
     deleted_count
   end
 
@@ -167,12 +160,39 @@ defmodule Demo.Core.User do
     with {:ok, token_hash} <- token_hash(token) do
       if token =
            Repo.one(
-             from token in Token,
-               where: token_valid?(token),
+             from valid_tokens_query(),
                where: [hash: ^token_hash, type: ^type]
            ),
          do: {:ok, token},
          else: :error
     end
+  end
+
+  defp valid_tokens_query do
+    Enum.reduce(
+      Token.validities(),
+      Token,
+      fn {type, validity}, query ->
+        or_where(
+          query,
+          [token],
+          token.type == ^type and token.inserted_at > ago(^validity, "day")
+        )
+      end
+    )
+  end
+
+  defp invalid_tokens_query do
+    Enum.reduce(
+      Token.validities(),
+      Token,
+      fn {type, validity}, query ->
+        or_where(
+          query,
+          [token],
+          token.type == ^type and token.inserted_at < ago(^validity, "day")
+        )
+      end
+    )
   end
 end
