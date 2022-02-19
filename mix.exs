@@ -61,7 +61,7 @@ defmodule Demo.MixProject do
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.deploy": ["esbuild default --minify", "phx.digest"],
       release: ["assets.deploy", "release"],
-      "demo.run_ci_checks": [
+      "demo.ci": [
         "format --check-formatted",
         "test",
         "credo",
@@ -73,7 +73,7 @@ defmodule Demo.MixProject do
   end
 
   defp preferred_cli_env do
-    ["demo.run_ci_checks": :test, release: :prod]
+    ["demo.ci": :test, release: :prod]
   end
 
   defp dialyzer do
