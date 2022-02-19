@@ -157,15 +157,10 @@ defmodule Demo.Core.User do
   end
 
   defp fetch_token(token, type) do
-    with {:ok, token_hash} <- token_hash(token) do
-      if token =
-           Repo.one(
-             from valid_tokens_query(),
-               where: [hash: ^token_hash, type: ^type]
-           ),
-         do: {:ok, token},
-         else: :error
-    end
+    with {:ok, token_hash} <- token_hash(token),
+         token = Repo.get_by(valid_tokens_query(), hash: token_hash, type: type),
+         :ok <- validate(token != nil),
+         do: {:ok, token}
   end
 
   defp valid_tokens_query do
