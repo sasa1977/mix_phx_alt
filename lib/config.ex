@@ -5,7 +5,7 @@ defmodule Demo.Config do
     source: Provider.SystemEnv,
     params: [
       {:secret_key_base, dev: "6SQyoN0wWViSTd5UaarW/wZsqTX0sFgYqYfGZpehG2s6kCwJOSiVVaiLBUO5oUdB"},
-      {:site_host, dev: "localhost"},
+      {:public_url, dev: "http://localhost:4000"},
       {:db_url, dev: "ecto://postgres:postgres@localhost/demo_#{Demo.Helpers.mix_env()}"},
       {:db_pool_size, type: :integer, default: 10},
       {:db_ipv6, type: :boolean, default: false}
