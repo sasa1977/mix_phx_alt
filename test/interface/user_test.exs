@@ -12,28 +12,28 @@ defmodule Demo.Interface.UserTest do
 
     test "redirects to registration if the user is anonymous" do
       conn = get(build_conn(), "/")
-      assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
+      assert redirected_to(conn) == Routes.user_path(conn, :start_registration_form)
     end
 
     test "redirects to registration if the token expired" do
-      conn = register_and_activate!()
+      conn = register!()
       expire_last_token()
 
       conn = conn |> recycle() |> get("/")
-      assert redirected_to(conn) == Routes.user_path(conn, :registration_form)
+      assert redirected_to(conn) == Routes.user_path(conn, :start_registration_form)
     end
 
     test "greets the authenticated user" do
-      conn = register_and_activate!() |> recycle() |> get("/")
+      conn = register!() |> recycle() |> get("/")
       response = html_response(conn, 200)
       assert response =~ "Welcome"
       assert response =~ "Log out"
     end
   end
 
-  describe "registration" do
+  describe "start registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/registration_form")
+      conn = get(build_conn(), "/start_registration_form")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_email" name="user[email]/
       refute response =~ "Log out"
@@ -41,40 +41,42 @@ defmodule Demo.Interface.UserTest do
 
     test "form redirects if the user is authenticated" do
       conn =
-        register_and_activate!()
+        register!()
         |> recycle()
-        |> get("/registration_form")
+        |> get("/start_registration_form")
 
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
     test "rejects invalid email" do
-      assert {:error, conn} = register(email: nil)
+      assert {:error, conn} = start_registration(email: nil)
       assert "can't be blank" in errors(conn, :email)
 
-      assert {:error, conn} = register(email: "")
+      assert {:error, conn} = start_registration(email: "")
       assert "can't be blank" in errors(conn, :email)
 
-      assert {:error, conn} = register(email: "foo bar")
+      assert {:error, conn} = start_registration(email: "foo bar")
       assert "must have the @ sign and no spaces" in errors(conn, :email)
 
-      assert {:error, conn} = register(email: "foo@ba r")
+      assert {:error, conn} = start_registration(email: "foo@ba r")
       assert "must have the @ sign and no spaces" in errors(conn, :email)
 
-      assert {:error, conn} = register(email: "foo@bar.baz" <> String.duplicate("1", 160))
+      assert {:error, conn} =
+               start_registration(email: "foo@bar.baz" <> String.duplicate("1", 160))
+
       assert "should be at most 160 character(s)" in errors(conn, :email)
     end
 
     test "succeds without sending an email if the email address is taken" do
       params = valid_registration_params()
-      register_and_activate!(params)
-      assert register!(params) == nil
+      register!(params)
+      assert start_registration!(params) == nil
     end
   end
 
-  describe "activation" do
+  describe "finish registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/activation_form/some_token")
+      conn = get(build_conn(), "/finish_registration_form/some_token")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_password" name="user[password]/
       refute response =~ "Log out"
@@ -82,32 +84,37 @@ defmodule Demo.Interface.UserTest do
 
     test "form redirects if the user is authenticated" do
       conn =
-        register_and_activate!()
+        register!()
         |> recycle()
-        |> get("/activation_form/some_token")
+        |> get("/finish_registration_form/some_token")
 
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
     test "rejects invalid password" do
-      activation_path = register!()
+      finish_path = start_registration!()
 
-      assert {:error, conn} = activate(%{password: nil}, activation_path)
+      assert {:error, conn} = finish_registration(%{password: nil}, finish_path)
       assert "can't be blank" in errors(conn, :password)
 
-      assert {:error, conn} = activate(%{password: ""}, activation_path)
+      assert {:error, conn} = finish_registration(%{password: ""}, finish_path)
       assert "can't be blank" in errors(conn, :password)
 
-      assert {:error, conn} = activate(%{password: "12345678901"}, activation_path)
+      assert {:error, conn} = finish_registration(%{password: "12345678901"}, finish_path)
       assert "should be at least 12 characters" in errors(conn, :password)
 
-      assert {:error, conn} = activate(%{password: String.duplicate("1", 73)}, activation_path)
+      assert {:error, conn} =
+               finish_registration(%{password: String.duplicate("1", 73)}, finish_path)
+
       assert "should be at most 72 characters" in errors(conn, :password)
     end
 
     test "fails for invalid token" do
       assert {:error, conn} =
-               activate(valid_registration_params(), "/activation_form/invalid_token")
+               finish_registration(
+                 valid_registration_params(),
+                 "/finish_registration_form/invalid_token"
+               )
 
       assert html_response(conn, 404)
     end
@@ -115,22 +122,34 @@ defmodule Demo.Interface.UserTest do
     test "fails if the user is already activated" do
       params = valid_registration_params()
 
-      activation_path1 = register!(params)
-      activation_path2 = register!(params)
+      finish_path1 = start_registration!(params)
+      finish_path2 = start_registration!(params)
 
-      activate!(params, activation_path1)
+      finish_registration!(params, finish_path1)
 
-      assert {:error, conn} = activate(valid_registration_params(), activation_path2)
+      assert {:error, conn} = finish_registration(valid_registration_params(), finish_path2)
+      assert html_response(conn, 404)
+    end
+
+    test "token can only be used once" do
+      params = valid_registration_params()
+
+      finish_path = start_registration!(params)
+      finish_registration!(params, finish_path)
+
+      assert {:error, conn} = finish_registration(params, finish_path)
       assert html_response(conn, 404)
     end
   end
 
   test "logout clears the current user" do
-    logged_in_conn = register_and_activate!()
+    logged_in_conn = register!()
 
     logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
 
-    assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :registration_form)
+    assert redirected_to(logged_out_conn) ==
+             Routes.user_path(logged_out_conn, :start_registration_form)
+
     assert Plug.Conn.get_session(logged_out_conn) == %{}
     assert is_nil(logged_out_conn.assigns.current_user)
 
@@ -138,21 +157,23 @@ defmodule Demo.Interface.UserTest do
   end
 
   test "periodic token cleanup deletes expired tokens" do
-    register!()
+    start_registration!()
     expire_last_token(_days = 7)
 
-    register_and_activate!()
+    register!()
     expire_last_token(_days = 60)
 
-    conn1 = register_and_activate!()
-    activation_path = register!()
+    conn1 = register!()
+    finish_path = start_registration!()
 
     Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.TokenCleanup)
     {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.TokenCleanup)
 
     assert Repo.aggregate(Model.Token, :count) == 2
+
+    # this proves that survived tokens are still working
     assert still_logged_in?(conn1)
-    assert {:ok, _} = activate(valid_registration_params(), activation_path)
+    assert {:ok, _} = finish_registration(valid_registration_params(), finish_path)
   end
 
   defp still_logged_in?(conn) do
@@ -162,38 +183,40 @@ defmodule Demo.Interface.UserTest do
 
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)
 
-  defp register_and_activate!(params \\ %{}) do
-    params = Map.merge(valid_registration_params(), Map.new(params))
-    activate!(params, register!(params))
-  end
-
   defp register!(params \\ %{}) do
-    {:ok, activation_path} = register(params)
-    activation_path
+    params = Map.merge(valid_registration_params(), Map.new(params))
+    finish_registration!(params, start_registration!(params))
   end
 
-  defp register(params) do
+  defp start_registration!(params \\ %{}) do
+    {:ok, finish_path} = start_registration(params)
+    finish_path
+  end
+
+  defp start_registration(params) do
     params = Map.merge(valid_registration_params(), Map.new(params))
-    conn = post(build_conn(), "/register", %{user: Map.take(params, [:email])})
+    conn = post(build_conn(), "/start_registration", %{user: Map.take(params, [:email])})
     assert conn.status == 200
 
     if conn.resp_body =~ "Activation email has been sent",
-      do: {:ok, activation_path(params.email)},
+      do: {:ok, finish_path(params.email)},
       else: {:error, conn}
   end
 
-  defp activate!(params, activation_path) do
-    {:ok, conn} = activate(params, activation_path)
+  defp finish_registration!(params, finish_path) do
+    {:ok, conn} = finish_registration(params, finish_path)
     conn
   end
 
-  defp activate(params, activation_path) do
+  defp finish_registration(params, finish_path) do
     # render finalize form to set the token into session
-    conn = build_conn() |> get(activation_path)
+    conn = build_conn() |> get(finish_path)
 
-    # activate with the given password
+    # finish registration with the given password
     params = Map.take(params, [:password])
-    conn = conn |> recycle() |> post(Routes.user_path(conn, :activate), %{user: params})
+
+    conn =
+      conn |> recycle() |> post(Routes.user_path(conn, :finish_registration), %{user: params})
 
     with :ok <- validate(conn.status == 302, conn) do
       conn = conn |> recycle() |> get(redirected_to(conn))
@@ -202,12 +225,12 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
-  defp activation_path(email) do
+  defp finish_path(email) do
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Activate your account"} = activation_email} ->
-        ~r[http://.*(?<activation_path>/activation_form/.*)]
+        ~r[http://.*(?<finish_path>/finish_registration_form/.*)]
         |> Regex.named_captures(activation_email.text_body)
-        |> Map.fetch!("activation_path")
+        |> Map.fetch!("finish_path")
     after
       0 -> nil
     end

@@ -7,32 +7,41 @@ defmodule Demo.Core.User do
   alias Demo.Core.Model.{Token, User}
   alias Demo.Core.Repo
 
-  @type token :: String.t()
+  @type confirm_email_token :: String.t()
+  @type auth_token :: String.t()
+  @type finish_registration_url_builder :: (confirm_email_token -> String.t())
 
-  defmacrop token_valid?(token) do
+  defmacrop(token_valid?(token)) do
     quote do
       (unquote(token).type == :auth and unquote(token).inserted_at > ago(60, "day")) or
-        (unquote(token).type == :activation and unquote(token).inserted_at > ago(7, "day"))
+        (unquote(token).type == :confirm_email and unquote(token).inserted_at > ago(7, "day"))
     end
   end
 
   @doc """
-  Registers a new user.
+  Starts the registration process.
 
-  This function will validate the input and send the activation mail. However, the user record
-  will only be created on successful activation.
+      1. Creates the new confirm_email token.
+      2. Sends the activation email to the user, unless the user is already registered.
 
-  As a result, multiple people can attempt to register with the same e-mail address, but only one
-  such registration will succeed.
+  Note that this function doesn't create the user entry. Multiple different registrations can be
+  created for the same email, but only one of them will succeed. In addition, this function will
+  not tell the user that the email has already been taken. This approach prevents possible
+  malicious impersonations, as well as enumeration and timing attacks.
+
+  The rest of the data is provided in `finish_registration/2`. Most notably, this is the place
+  where the user provides the password, which reduces the chances of impersonations (person owning
+  the account is not the person with the access to the given email).
   """
-  @spec register(String.t(), (token -> String.t())) :: :ok | {:error, Ecto.Changeset.t()}
-  def register(email, url_fun) do
+  @spec start_registration(String.t(), finish_registration_url_builder) ::
+          :ok | {:error, Ecto.Changeset.t()}
+  def start_registration(email, url_fun) do
     with :ok <- validate_email(email) do
       # We'll only generate the token and send an e-mail if the user doesn't exist. This avoid
       # spamming registered users with unwanted mails. However, to prevent enumeration attacks,
       # this operation will always succeed, even if the email has been taken.
       unless Repo.exists?(where(User, email: ^email)) do
-        token = create_token!(nil, :activation, %{email: email})
+        token = create_token!(nil, :confirm_email, %{email: email})
 
         Demo.Core.Mailer.send(
           email,
@@ -46,21 +55,22 @@ defmodule Demo.Core.User do
   end
 
   @doc """
-  Creates and activates the user.
+  Finishes the registration process.
 
-  On success the function will also create an auth token and return it.
-  If the activation token is invalid or the email has already been taken the function returns `:error`.
-  If the submitted data is invalid, the function will return corresponding errors as a changeset.
+  On success, this function creates the user entry and returns the auth token that can be used with
+  `authenticate/1`. If the token is invalid or expired, or if the email has been taken, the
+  function returns `:error`. We don't make distinctions between these scenarios to avoid leaking
+  emails.
   """
-  @spec activate(token, String.t()) ::
-          {:ok, auth_token :: token} | :error | {:error, Ecto.Changeset.t()}
-  def activate(encoded, password) do
+  @spec finish_registration(confirm_email_token, String.t()) ::
+          {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
+  def finish_registration(confirm_email_token, password) do
     Repo.transact(fn ->
-      with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
-           token = valid_token(token_hash(raw), :activation),
-           validate(token != nil),
+      with {:ok, decoded_token} <- Base.url_decode64(confirm_email_token, padding: false),
+           token = valid_token(token_hash(decoded_token), :confirm_email),
+           :ok <- validate(token != nil),
            {:ok, user} <- store_user(Map.fetch!(token.payload, "email"), password) do
-        # activation is a one-time token, so we're deleting it now
+        # confirm_email is a one-time token, so we're deleting it now
         Repo.delete(token)
         {:ok, create_token!(user, :auth)}
       end
@@ -74,16 +84,16 @@ defmodule Demo.Core.User do
     )
   end
 
-  @spec from_auth_token(token) :: User.t() | nil
-  def from_auth_token(encoded) do
+  @spec authenticate(auth_token) :: User.t() | nil
+  def authenticate(encoded) do
     with {:ok, raw} <- Base.url_decode64(encoded, padding: false),
          %Token{} = token <- valid_token(token_hash(raw), :auth),
          do: Repo.one!(Ecto.assoc(token, :user)),
          else: (_ -> nil)
   end
 
-  @spec delete_auth_token(token) :: :ok
-  def delete_auth_token(encoded) do
+  @spec logout(auth_token) :: :ok
+  def logout(encoded) do
     hash = encoded |> Base.url_decode64!(padding: false) |> token_hash()
     Repo.delete_all(where(Token, hash: ^hash, type: :auth))
     :ok

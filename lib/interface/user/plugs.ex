@@ -8,15 +8,15 @@ defmodule Demo.Interface.User.Plugs do
   alias Demo.Interface.Router.Helpers, as: Routes
 
   def fetch_current_user(conn, _opts) do
-    user_token = get_session(conn, :user_token)
-    current_user = user_token && Demo.Core.User.from_auth_token(user_token)
+    auth_token = get_session(conn, :auth_token)
+    current_user = auth_token && Demo.Core.User.authenticate(auth_token)
     assign(conn, :current_user, current_user)
   end
 
   def require_user(conn, _opts) do
     if conn.assigns.current_user,
       do: conn,
-      else: conn |> redirect(to: Routes.user_path(conn, :registration_form)) |> halt()
+      else: conn |> redirect(to: Routes.user_path(conn, :start_registration_form)) |> halt()
   end
 
   def require_anonymous(conn, _opts) do

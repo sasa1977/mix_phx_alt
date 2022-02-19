@@ -24,11 +24,11 @@ defmodule Demo.Interface.Router do
   scope "/", Demo.Interface do
     pipe_through [:browser, :require_anonymous]
 
-    get "/registration_form", User.Controller, :registration_form, as: :user
-    post "/register", User.Controller, :register, as: :user
+    get "/start_registration_form", User.Controller, :start_registration_form, as: :user
+    post "/start_registration", User.Controller, :start_registration, as: :user
 
-    get "/activation_form/:token", User.Controller, :activation_form, as: :user
-    post "/activate", User.Controller, :activate, as: :user
+    get "/finish_registration_form/:token", User.Controller, :finish_registration_form, as: :user
+    post "/finish_registration", User.Controller, :finish_registration, as: :user
   end
 
   # logged-in routes
