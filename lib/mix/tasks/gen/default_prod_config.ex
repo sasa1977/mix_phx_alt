@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Demo.Gen.DefaultProdConfig do
 
     {:ok, config} = Demo.Config.fetch_all()
     path = "priv/local_prod_config.exs"
-    File.write!(path, inspect(config, pretty: true, limit: :infinity))
+    File.write!(path, [inspect(config, pretty: true, limit: :infinity), ?\n])
 
     Mix.shell().info("""
 

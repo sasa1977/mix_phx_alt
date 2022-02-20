@@ -43,7 +43,7 @@ jobs:
         run: MIX_ENV=test mix compile --warnings-as-errors
 
       - name: Run checks
-        run: mix demo.run_ci_checks
+        run: mix demo.ci
 
       - name: Check OTP release
         run: |

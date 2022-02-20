@@ -11,7 +11,7 @@ defmodule Demo.Interface.Endpoint do
       config
       |> deep_merge(
         http: [port: 4000],
-        url: [host: Demo.Config.site_host()],
+        url: Demo.Config.public_url() |> URI.parse() |> Map.take(~w/scheme host port path/),
         secret_key_base: Demo.Config.secret_key_base(),
         render_errors: [view: Demo.Interface.Error.View, accepts: ~w(html json), layout: false],
         pubsub_server: Demo.PubSub,
@@ -53,7 +53,6 @@ defmodule Demo.Interface.Endpoint do
 
   defp endpoint_opts(:prod) do
     [
-      url: [port: 443],
       http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}],
       cache_static_manifest: "priv/static/cache_manifest.json",
       server: true
