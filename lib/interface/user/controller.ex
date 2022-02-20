@@ -6,6 +6,10 @@ defmodule Demo.Interface.User.Controller do
 
   def welcome(conn, _params), do: render(conn, :welcome)
 
+  # ------------------------------------------------------------------------
+  # Registration
+  # ------------------------------------------------------------------------
+
   def start_registration_form(conn, _params),
     do: render(conn, :start_registration, changeset: Ecto.Changeset.change(%Model.User{}))
 
@@ -34,6 +38,10 @@ defmodule Demo.Interface.User.Controller do
         {:error, :not_found}
     end
   end
+
+  # ------------------------------------------------------------------------
+  # Authentication
+  # ------------------------------------------------------------------------
 
   def login_form(conn, _params),
     do: render(conn, :login, error_message: nil)
