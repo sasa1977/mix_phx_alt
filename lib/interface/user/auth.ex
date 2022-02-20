@@ -20,13 +20,13 @@ defmodule Demo.Interface.User.Auth do
   end
 
   @doc "Sets the authentication token, and optionally also stores it in a remember cookie."
-  @spec set(Plug.Conn.t(), Demo.Core.User.auth_token(), remember_me?: boolean) :: Plug.Conn.t()
+  @spec set(Plug.Conn.t(), Demo.Core.User.auth_token(), remember?: boolean) :: Plug.Conn.t()
   def set(conn, auth_token, opts \\ []) do
     conn
     |> clear()
     |> put_session(:auth_token, auth_token)
     |> then(fn conn ->
-      if Keyword.get(opts, :remember_me?, false) do
+      if Keyword.get(opts, :remember?, false) do
         put_resp_cookie(conn, "auth_token", auth_token,
           sign: true,
           max_age: Demo.Core.Model.Token.validity(:auth) * 24 * 60 * 60,

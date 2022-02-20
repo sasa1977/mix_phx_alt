@@ -152,7 +152,7 @@ defmodule Demo.Interface.UserTest do
       register!(params)
 
       conn =
-        login!(Map.merge(params, %{remember_me: "true"}))
+        login!(Map.merge(params, %{remember: "true"}))
         |> recycle()
         |> delete_req_cookie("_demo_key")
         |> get("/")
@@ -181,7 +181,7 @@ defmodule Demo.Interface.UserTest do
     registration_params = valid_registration_params()
     register!(registration_params)
 
-    logged_in_conn = login!(Map.put(registration_params, :remember_me, "true"))
+    logged_in_conn = login!(Map.put(registration_params, :remember, "true"))
     logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
 
     assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :login_form)
@@ -282,10 +282,10 @@ defmodule Demo.Interface.UserTest do
   end
 
   defp login(params) do
-    params = Map.merge(%{remember_me: "false"}, Map.new(params))
+    params = Map.merge(%{remember: "false"}, Map.new(params))
     conn = post(build_conn(), "/login", %{user: params})
 
-    if params.remember_me == "true" do
+    if params.remember == "true" do
       assert %{"auth_token" => %{max_age: max_age, same_site: "Lax"}} = conn.resp_cookies
       assert max_age == Model.Token.validity(:auth) * 24 * 60 * 60
     end

@@ -49,10 +49,10 @@ defmodule Demo.Interface.User.Controller do
     do: render(conn, :login, error_message: nil)
 
   def login(conn, %{"user" => user}) do
-    %{"email" => email, "password" => password, "remember_me" => remember_me?} = user
+    %{"email" => email, "password" => password, "remember" => remember?} = user
 
     case User.login(email, password) do
-      {:ok, token} -> on_authenticated(conn, token, remember_me?: remember_me? == "true")
+      {:ok, token} -> on_authenticated(conn, token, remember?: remember? == "true")
       :error -> render(conn, :login, error_message: "Invalid email or password")
     end
   end
