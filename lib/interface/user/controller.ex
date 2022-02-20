@@ -46,9 +46,11 @@ defmodule Demo.Interface.User.Controller do
   def login_form(conn, _params),
     do: render(conn, :login, error_message: nil)
 
-  def login(conn, %{"user" => %{"email" => email, "password" => password}}) do
+  def login(conn, %{"user" => user}) do
+    %{"email" => email, "password" => password, "remember_me" => remember_me?} = user
+
     case User.login(email, password) do
-      {:ok, token} -> on_authenticated(conn, token)
+      {:ok, token} -> on_authenticated(conn, token, remember_me?: remember_me? == "true")
       :error -> render(conn, :login, error_message: "Invalid email or password")
     end
   end
@@ -57,15 +59,30 @@ defmodule Demo.Interface.User.Controller do
     conn |> get_session(:auth_token) |> User.logout()
 
     conn
+    |> configure_session(renew: true)
     |> clear_session()
+    |> delete_resp_cookie("auth_token")
     |> assign(:current_user, nil)
     |> redirect(to: Routes.user_path(conn, :login_form))
   end
 
-  defp on_authenticated(conn, auth_token) do
+  defp on_authenticated(conn, auth_token, opts \\ []) do
     conn
+    |> configure_session(renew: true)
     |> clear_session()
+    |> delete_resp_cookie("auth_token")
     |> put_session(:auth_token, auth_token)
+    |> then(fn conn ->
+      if Keyword.get(opts, :remember_me?, false) do
+        put_resp_cookie(conn, "auth_token", auth_token,
+          sign: true,
+          max_age: Model.Token.validity(:auth) * 24 * 60 * 60,
+          same_site: "Lax"
+        )
+      else
+        conn
+      end
+    end)
     |> redirect(to: Routes.user_path(conn, :welcome))
   end
 end

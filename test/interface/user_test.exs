@@ -141,6 +141,23 @@ defmodule Demo.Interface.UserTest do
 
       assert {:ok, conn} = login(params)
       assert conn.request_path == Routes.user_path(conn, :welcome)
+
+      # verify that the user is not remembered
+      conn = conn |> recycle() |> delete_req_cookie("_demo_key") |> get("/")
+      assert assert redirected_to(conn) == Routes.user_path(conn, :login)
+    end
+
+    test "remembers the user" do
+      params = valid_registration_params()
+      register!(params)
+
+      conn =
+        login!(Map.merge(params, %{remember_me: "true"}))
+        |> recycle()
+        |> delete_req_cookie("_demo_key")
+        |> get("/")
+
+      assert html_response(conn, 200) =~ "Log out"
     end
 
     test "fails with invalid password" do
@@ -161,14 +178,17 @@ defmodule Demo.Interface.UserTest do
   end
 
   test "logout clears the current user" do
-    logged_in_conn = register!()
+    registration_params = valid_registration_params()
+    register!(registration_params)
 
+    logged_in_conn = login!(Map.put(registration_params, :remember_me, "true"))
     logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
 
     assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :login_form)
 
-    assert Plug.Conn.get_session(logged_out_conn) == %{}
+    assert get_session(logged_out_conn) == %{}
     assert is_nil(logged_out_conn.assigns.current_user)
+    assert logged_out_conn.resp_cookies["auth_token"].max_age == 0
 
     refute still_logged_in?(logged_in_conn)
   end
@@ -256,8 +276,19 @@ defmodule Demo.Interface.UserTest do
   defp valid_registration_params,
     do: %{email: "#{unique("username")}@foo.bar", password: "123456789012"}
 
+  defp login!(params) do
+    {:ok, conn} = login(params)
+    conn
+  end
+
   defp login(params) do
-    conn = post(build_conn(), "/login", %{user: Map.new(params)})
+    params = Map.merge(%{remember_me: "false"}, Map.new(params))
+    conn = post(build_conn(), "/login", %{user: params})
+
+    if params.remember_me == "true" do
+      assert %{"auth_token" => %{max_age: max_age, same_site: "Lax"}} = conn.resp_cookies
+      assert max_age == Model.Token.validity(:auth) * 24 * 60 * 60
+    end
 
     with :ok <- validate(conn.status == 302, conn) do
       conn = conn |> recycle() |> get(redirected_to(conn))

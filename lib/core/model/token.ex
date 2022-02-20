@@ -20,4 +20,7 @@ defmodule Demo.Core.Model.Token do
       confirm_email: 7
     ]
   end
+
+  @spec validity(type) :: pos_integer
+  def validity(type), do: Keyword.fetch!(validities(), type)
 end

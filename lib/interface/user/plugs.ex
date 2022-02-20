@@ -8,8 +8,18 @@ defmodule Demo.Interface.User.Plugs do
   alias Demo.Interface.Router.Helpers, as: Routes
 
   def fetch_current_user(conn, _opts) do
-    auth_token = get_session(conn, :auth_token)
+    {auth_token, conn} =
+      if session_token = get_session(conn, :auth_token) do
+        {session_token, conn}
+      else
+        conn = fetch_cookies(conn, signed: ["auth_token"])
+        remember_token = conn.cookies["auth_token"]
+        conn = if remember_token, do: put_session(conn, :auth_token, remember_token), else: conn
+        {remember_token, conn}
+      end
+
     current_user = auth_token && Demo.Core.User.authenticate(auth_token)
+
     assign(conn, :current_user, current_user)
   end
 
