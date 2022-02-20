@@ -33,18 +33,14 @@ defmodule Demo.Interface.UserTest do
 
   describe "start registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/start_registration_form")
+      conn = get(build_conn(), "/start_registration")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_email" name="user[email]/
       refute response =~ "Log out"
     end
 
     test "form redirects if the user is authenticated" do
-      conn =
-        register!()
-        |> recycle()
-        |> get("/start_registration_form")
-
+      conn = register!() |> recycle() |> get("/start_registration")
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
@@ -76,18 +72,14 @@ defmodule Demo.Interface.UserTest do
 
   describe "finish registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/finish_registration_form/some_token")
+      conn = get(build_conn(), "/finish_registration/some_token")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_password" name="user[password]/
       refute response =~ "Log out"
     end
 
     test "form redirects if the user is authenticated" do
-      conn =
-        register!()
-        |> recycle()
-        |> get("/finish_registration_form/some_token")
-
+      conn = register!() |> recycle() |> get("/finish_registration/some_token")
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
@@ -113,7 +105,7 @@ defmodule Demo.Interface.UserTest do
       assert {:error, conn} =
                finish_registration(
                  valid_registration_params(),
-                 "/finish_registration_form/invalid_token"
+                 "/finish_registration/invalid_token"
                )
 
       assert html_response(conn, 404)
@@ -253,7 +245,7 @@ defmodule Demo.Interface.UserTest do
   defp finish_path(email) do
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
-        ~r[http://.*(?<finish_path>/finish_registration_form/.*)]
+        ~r[http://.*(?<finish_path>/finish_registration/.*)]
         |> Regex.named_captures(registration_email.text_body)
         |> Map.fetch!("finish_path")
     after
