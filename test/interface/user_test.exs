@@ -10,9 +10,9 @@ defmodule Demo.Interface.UserTest do
       assert Routes.user_path(build_conn(), :welcome) == "/"
     end
 
-    test "redirects to registration if the user is anonymous" do
+    test "redirects to login if the user is anonymous" do
       conn = get(build_conn(), "/")
-      assert redirected_to(conn) == Routes.user_path(conn, :start_registration_form)
+      assert redirected_to(conn) == Routes.user_path(conn, :login)
     end
 
     test "redirects to registration if the token expired" do
@@ -20,7 +20,7 @@ defmodule Demo.Interface.UserTest do
       expire_last_token()
 
       conn = conn |> recycle() |> get("/")
-      assert redirected_to(conn) == Routes.user_path(conn, :start_registration_form)
+      assert redirected_to(conn) == Routes.user_path(conn, :login)
     end
 
     test "greets the authenticated user" do
