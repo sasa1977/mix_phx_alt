@@ -61,6 +61,6 @@ defmodule Demo.Interface.User.Controller do
     conn
     |> clear_session()
     |> assign(:current_user, nil)
-    |> redirect(to: Routes.user_path(conn, :start_registration_form))
+    |> redirect(to: Routes.user_path(conn, :login_form))
   end
 end

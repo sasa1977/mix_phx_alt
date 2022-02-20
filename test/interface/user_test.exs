@@ -173,8 +173,7 @@ defmodule Demo.Interface.UserTest do
 
     logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
 
-    assert redirected_to(logged_out_conn) ==
-             Routes.user_path(logged_out_conn, :start_registration_form)
+    assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :login_form)
 
     assert Plug.Conn.get_session(logged_out_conn) == %{}
     assert is_nil(logged_out_conn.assigns.current_user)
