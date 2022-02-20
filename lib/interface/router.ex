@@ -30,6 +30,7 @@ defmodule Demo.Interface.Router do
     get "/finish_registration_form/:token", User.Controller, :finish_registration_form, as: :user
     post "/finish_registration", User.Controller, :finish_registration, as: :user
 
+    get "/login", User.Controller, :login_form, as: :user
     post "/login", User.Controller, :login, as: :user
   end
 

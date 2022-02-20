@@ -39,6 +39,9 @@ defmodule Demo.Interface.User.Controller do
     end
   end
 
+  def login_form(conn, _params),
+    do: render(conn, :login_form, error_message: nil)
+
   def login(conn, %{"user" => %{"email" => email, "password" => password}}) do
     case User.login(email, password) do
       {:ok, token} ->
@@ -48,7 +51,7 @@ defmodule Demo.Interface.User.Controller do
         |> redirect(to: Routes.user_path(conn, :welcome))
 
       :error ->
-        {:error, :unauthorized}
+        render(conn, :login_form, error_message: "Invalid email or password")
     end
   end
 

@@ -156,7 +156,7 @@ defmodule Demo.Interface.UserTest do
       register!(%{params | password: "invalid password"})
 
       assert {:error, conn} = login(params)
-      assert conn.status == 401
+      assert conn.resp_body =~ "Invalid email or password"
     end
 
     test "fails with invalid email" do
@@ -164,7 +164,7 @@ defmodule Demo.Interface.UserTest do
       register!(%{params | email: "invalid@email.com"})
 
       assert {:error, conn} = login(params)
-      assert conn.status == 401
+      assert conn.resp_body =~ "Invalid email or password"
     end
   end
 
