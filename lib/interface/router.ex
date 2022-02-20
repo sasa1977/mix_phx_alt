@@ -1,7 +1,7 @@
 defmodule Demo.Interface.Router do
   use Phoenix.Router
 
-  import Demo.Interface.User.Plugs
+  import Demo.Interface.User.Auth
   import Plug.Conn
   import Phoenix.Controller
   import Phoenix.LiveView.Router

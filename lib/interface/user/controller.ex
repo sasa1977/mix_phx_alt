@@ -2,7 +2,9 @@
 
 defmodule Demo.Interface.User.Controller do
   use Demo.Interface.Controller
+
   alias Demo.Core.{Model, User}
+  alias Demo.Interface.User.Auth
 
   def welcome(conn, _params), do: render(conn, :welcome)
 
@@ -56,33 +58,16 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def logout(conn, _params) do
-    conn |> get_session(:auth_token) |> User.logout()
+    User.logout(Auth.token(conn))
 
     conn
-    |> configure_session(renew: true)
-    |> clear_session()
-    |> delete_resp_cookie("auth_token")
-    |> assign(:current_user, nil)
+    |> Auth.clear()
     |> redirect(to: Routes.user_path(conn, :login_form))
   end
 
   defp on_authenticated(conn, auth_token, opts \\ []) do
     conn
-    |> configure_session(renew: true)
-    |> clear_session()
-    |> delete_resp_cookie("auth_token")
-    |> put_session(:auth_token, auth_token)
-    |> then(fn conn ->
-      if Keyword.get(opts, :remember_me?, false) do
-        put_resp_cookie(conn, "auth_token", auth_token,
-          sign: true,
-          max_age: Model.Token.validity(:auth) * 24 * 60 * 60,
-          same_site: "Lax"
-        )
-      else
-        conn
-      end
-    end)
+    |> Auth.set(auth_token, opts)
     |> redirect(to: Routes.user_path(conn, :welcome))
   end
 end
