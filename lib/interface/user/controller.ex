@@ -25,11 +25,7 @@ defmodule Demo.Interface.User.Controller do
   def finish_registration(conn, %{"user" => %{"password" => password}}) do
     case User.finish_registration(get_session(conn, :confirm_email_token), password) do
       {:ok, token} ->
-        conn
-        |> clear_session()
-        |> put_session(:auth_token, token)
-        |> put_flash(:info, "User activated successfully.")
-        |> redirect(to: Routes.user_path(conn, :welcome))
+        conn |> put_flash(:info, "User activated successfully.") |> on_authenticated(token)
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :finish_registration_form, changeset: changeset)
@@ -44,14 +40,8 @@ defmodule Demo.Interface.User.Controller do
 
   def login(conn, %{"user" => %{"email" => email, "password" => password}}) do
     case User.login(email, password) do
-      {:ok, token} ->
-        conn
-        |> clear_session()
-        |> put_session(:auth_token, token)
-        |> redirect(to: Routes.user_path(conn, :welcome))
-
-      :error ->
-        render(conn, :login_form, error_message: "Invalid email or password")
+      {:ok, token} -> on_authenticated(conn, token)
+      :error -> render(conn, :login_form, error_message: "Invalid email or password")
     end
   end
 
@@ -62,5 +52,12 @@ defmodule Demo.Interface.User.Controller do
     |> clear_session()
     |> assign(:current_user, nil)
     |> redirect(to: Routes.user_path(conn, :login_form))
+  end
+
+  defp on_authenticated(conn, auth_token) do
+    conn
+    |> clear_session()
+    |> put_session(:auth_token, auth_token)
+    |> redirect(to: Routes.user_path(conn, :welcome))
   end
 end
