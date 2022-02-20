@@ -39,6 +39,19 @@ defmodule Demo.Interface.User.Controller do
     end
   end
 
+  def login(conn, %{"user" => %{"email" => email, "password" => password}}) do
+    case User.login(email, password) do
+      {:ok, token} ->
+        conn
+        |> clear_session()
+        |> put_session(:auth_token, token)
+        |> redirect(to: Routes.user_path(conn, :welcome))
+
+      :error ->
+        {:error, :unauthorized}
+    end
+  end
+
   def logout(conn, _params) do
     conn |> get_session(:auth_token) |> User.logout()
 

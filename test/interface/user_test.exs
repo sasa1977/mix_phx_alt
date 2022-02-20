@@ -142,6 +142,32 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
+  describe "login" do
+    test "succeeds with valid parameters" do
+      params = valid_registration_params()
+      register!(params)
+
+      assert {:ok, conn} = login(params)
+      assert conn.request_path == Routes.user_path(conn, :welcome)
+    end
+
+    test "fails with invalid password" do
+      params = valid_registration_params()
+      register!(%{params | password: "invalid password"})
+
+      assert {:error, conn} = login(params)
+      assert conn.status == 401
+    end
+
+    test "fails with invalid email" do
+      params = valid_registration_params()
+      register!(%{params | email: "invalid@email.com"})
+
+      assert {:error, conn} = login(params)
+      assert conn.status == 401
+    end
+  end
+
   test "logout clears the current user" do
     logged_in_conn = register!()
 
@@ -238,6 +264,16 @@ defmodule Demo.Interface.UserTest do
 
   defp valid_registration_params,
     do: %{email: "#{unique("username")}@foo.bar", password: "123456789012"}
+
+  defp login(params) do
+    conn = post(build_conn(), "/login", %{user: Map.new(params)})
+
+    with :ok <- validate(conn.status == 302, conn) do
+      conn = conn |> recycle() |> get(redirected_to(conn))
+      assert conn.status == 200
+      {:ok, conn}
+    end
+  end
 
   defp expire_last_token(days \\ 60) do
     last_token = Repo.one!(from Model.Token, limit: 1, order_by: [desc: :inserted_at])
