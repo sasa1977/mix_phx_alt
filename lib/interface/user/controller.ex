@@ -65,6 +65,13 @@ defmodule Demo.Interface.User.Controller do
     |> redirect(to: Routes.user_path(conn, :login_form))
   end
 
+  def start_password_reset(conn, %{"user" => %{"email" => email}}) do
+    case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
+      :ok -> render(conn, :activation_pending, email: email)
+      {:error, _changeset} -> {:error, 400}
+    end
+  end
+
   defp on_authenticated(conn, auth_token, opts \\ []) do
     conn
     |> Auth.set(auth_token, opts)

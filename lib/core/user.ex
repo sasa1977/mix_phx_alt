@@ -9,7 +9,9 @@ defmodule Demo.Core.User do
 
   @type confirm_email_token :: String.t()
   @type auth_token :: String.t()
-  @type finish_registration_url_builder :: (confirm_email_token -> String.t())
+  @type password_reset_token :: String.t()
+
+  @type url_builder(arg) :: (arg -> url :: String.t())
 
   @doc """
   Starts the registration process.
@@ -26,7 +28,7 @@ defmodule Demo.Core.User do
   where the user provides the password, which reduces the chances of impersonations (person owning
   the account is not the person with the access to the given email).
   """
-  @spec start_registration(String.t(), finish_registration_url_builder) ::
+  @spec start_registration(String.t(), url_builder(confirm_email_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email, url_fun) do
     with :ok <- validate_email(email) do
@@ -102,6 +104,25 @@ defmodule Demo.Core.User do
   def logout(auth_token) do
     Repo.delete_all(where(Token, hash: ^token_hash!(auth_token), type: :auth))
     :ok
+  end
+
+  @spec start_password_reset(String.t(), url_builder(password_reset_token)) ::
+          :ok | {:error, Ecto.Changeset.t()}
+  def start_password_reset(email, url_fun) do
+    with :ok <- validate_email(email) do
+      if Repo.exists?(where(User, email: ^email)) do
+        token = create_token!(nil, :password_reset)
+
+        Demo.Core.Mailer.send(
+          email,
+          "Password reset",
+          "You can reset the password at the following url:\n#{url_fun.(token)}"
+        )
+      end
+
+      # To prevent enumeration attacks, this operation will always succeed, even if the email doesn't exist.
+      :ok
+    end
   end
 
   defp store_user(email, password) do

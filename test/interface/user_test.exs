@@ -177,6 +177,21 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
+  describe "start password reset" do
+    test "sends the reset link to a known user" do
+      registration_params = valid_registration_params()
+      register!(registration_params)
+
+      assert {:ok, reset_link} = start_password_reset(registration_params.email)
+      assert reset_link != nil
+    end
+
+    test "doesn't send the link to an unknown user" do
+      assert {:ok, reset_link} = start_password_reset("foo@bar.baz")
+      assert reset_link == nil
+    end
+  end
+
   test "logout clears the current user" do
     registration_params = valid_registration_params()
     register!(registration_params)
@@ -236,8 +251,19 @@ defmodule Demo.Interface.UserTest do
     assert conn.status == 200
 
     if conn.resp_body =~ "The email with further instructions has been sent to #{params.email}",
-      do: {:ok, finish_path(params.email)},
+      do: {:ok, finish_registration_path(params.email)},
       else: {:error, conn}
+  end
+
+  defp finish_registration_path(email) do
+    receive do
+      {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
+        ~r[http://.*(?<finish_path>/finish_registration/.*)]
+        |> Regex.named_captures(registration_email.text_body)
+        |> Map.fetch!("finish_path")
+    after
+      0 -> nil
+    end
   end
 
   defp finish_registration!(params, finish_path) do
@@ -262,17 +288,6 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
-  defp finish_path(email) do
-    receive do
-      {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
-        ~r[http://.*(?<finish_path>/finish_registration/.*)]
-        |> Regex.named_captures(registration_email.text_body)
-        |> Map.fetch!("finish_path")
-    after
-      0 -> nil
-    end
-  end
-
   defp valid_registration_params,
     do: %{email: "#{unique("username")}@foo.bar", password: "123456789012"}
 
@@ -294,6 +309,26 @@ defmodule Demo.Interface.UserTest do
       conn = conn |> recycle() |> get(redirected_to(conn))
       assert conn.status == 200
       {:ok, conn}
+    end
+  end
+
+  defp start_password_reset(email) do
+    conn = post(build_conn(), "/start_password_reset", %{user: %{email: email}})
+    assert conn.status == 200
+
+    if conn.resp_body =~ "The email with further instructions has been sent to #{email}",
+      do: {:ok, finish_password_reset(email)},
+      else: {:error, conn}
+  end
+
+  defp finish_password_reset(email) do
+    receive do
+      {:email, %{to: [{nil, ^email}], subject: "Password reset"} = mail} ->
+        ~r[http://.*(?<path>/reset_password/.*)]
+        |> Regex.named_captures(mail.text_body)
+        |> Map.fetch!("path")
+    after
+      0 -> nil
     end
   end
 
