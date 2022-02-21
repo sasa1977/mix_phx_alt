@@ -84,7 +84,22 @@ defmodule Demo.Interface.User.RegistrationTest do
     end
 
     test "fails for invalid token" do
+      # malformed token
       assert {:error, conn} = finish_registration("invalid_token", new_password())
+      assert html_response(conn, 404)
+
+      # token of a wrong type
+      token = start_registration!(new_email())
+      update_last_token(type: :auth)
+
+      assert {:error, conn} = finish_registration(token, new_password())
+      assert html_response(conn, 404)
+
+      # expired token
+      token = start_registration!(new_email())
+      expire_last_token()
+
+      assert {:error, conn} = finish_registration(token, new_password())
       assert html_response(conn, 404)
     end
 

@@ -48,10 +48,10 @@ defmodule Demo.Interface.UserTest do
 
   test "periodic token cleanup deletes expired tokens" do
     start_registration!(new_email())
-    expire_last_token(_days = 7)
+    expire_last_token()
 
     register!()
-    expire_last_token(_days = 60)
+    expire_last_token()
 
     conn1 = register!()
     token1 = start_registration!(new_email())
