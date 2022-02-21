@@ -76,6 +76,20 @@ defmodule Demo.Core.User do
     )
   end
 
+  @spec login(String.t(), String.t()) :: {:ok, auth_token} | :error
+  def login(email, password) do
+    user = Repo.get_by(User, email: email)
+
+    password_valid? =
+      if user != nil,
+        do: Bcrypt.verify_pass(password, user.password_hash),
+        else: Bcrypt.no_user_verify()
+
+    if password_valid?,
+      do: {:ok, create_token!(user, :auth)},
+      else: :error
+  end
+
   @spec authenticate(auth_token) :: User.t() | nil
   def authenticate(auth_token) do
     case fetch_token(auth_token, :auth) do

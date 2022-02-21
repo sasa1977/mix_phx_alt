@@ -10,9 +10,9 @@ defmodule Demo.Interface.UserTest do
       assert Routes.user_path(build_conn(), :welcome) == "/"
     end
 
-    test "redirects to registration if the user is anonymous" do
+    test "redirects to login if the user is anonymous" do
       conn = get(build_conn(), "/")
-      assert redirected_to(conn) == Routes.user_path(conn, :start_registration_form)
+      assert redirected_to(conn) == Routes.user_path(conn, :login)
     end
 
     test "redirects to registration if the token expired" do
@@ -20,7 +20,7 @@ defmodule Demo.Interface.UserTest do
       expire_last_token()
 
       conn = conn |> recycle() |> get("/")
-      assert redirected_to(conn) == Routes.user_path(conn, :start_registration_form)
+      assert redirected_to(conn) == Routes.user_path(conn, :login)
     end
 
     test "greets the authenticated user" do
@@ -33,18 +33,14 @@ defmodule Demo.Interface.UserTest do
 
   describe "start registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/start_registration_form")
+      conn = get(build_conn(), "/start_registration")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_email" name="user[email]/
       refute response =~ "Log out"
     end
 
     test "form redirects if the user is authenticated" do
-      conn =
-        register!()
-        |> recycle()
-        |> get("/start_registration_form")
-
+      conn = register!() |> recycle() |> get("/start_registration")
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
@@ -76,18 +72,14 @@ defmodule Demo.Interface.UserTest do
 
   describe "finish registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/finish_registration_form/some_token")
+      conn = get(build_conn(), "/finish_registration/some_token")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_password" name="user[password]/
       refute response =~ "Log out"
     end
 
     test "form redirects if the user is authenticated" do
-      conn =
-        register!()
-        |> recycle()
-        |> get("/finish_registration_form/some_token")
-
+      conn = register!() |> recycle() |> get("/finish_registration/some_token")
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
@@ -113,7 +105,7 @@ defmodule Demo.Interface.UserTest do
       assert {:error, conn} =
                finish_registration(
                  valid_registration_params(),
-                 "/finish_registration_form/invalid_token"
+                 "/finish_registration/invalid_token"
                )
 
       assert html_response(conn, 404)
@@ -142,16 +134,61 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
-  test "logout clears the current user" do
-    logged_in_conn = register!()
+  describe "login" do
+    test "succeeds with valid parameters" do
+      params = valid_registration_params()
+      register!(params)
 
+      assert {:ok, conn} = login(params)
+      assert conn.request_path == Routes.user_path(conn, :welcome)
+
+      # verify that the user is not remembered
+      conn = conn |> recycle() |> delete_req_cookie("_demo_key") |> get("/")
+      assert assert redirected_to(conn) == Routes.user_path(conn, :login)
+    end
+
+    test "remembers the user" do
+      params = valid_registration_params()
+      register!(params)
+
+      conn =
+        login!(Map.merge(params, %{remember: "true"}))
+        |> recycle()
+        |> delete_req_cookie("_demo_key")
+        |> get("/")
+
+      assert html_response(conn, 200) =~ "Log out"
+    end
+
+    test "fails with invalid password" do
+      params = valid_registration_params()
+      register!(%{params | password: "invalid password"})
+
+      assert {:error, conn} = login(params)
+      assert conn.resp_body =~ "Invalid email or password"
+    end
+
+    test "fails with invalid email" do
+      params = valid_registration_params()
+      register!(%{params | email: "invalid@email.com"})
+
+      assert {:error, conn} = login(params)
+      assert conn.resp_body =~ "Invalid email or password"
+    end
+  end
+
+  test "logout clears the current user" do
+    registration_params = valid_registration_params()
+    register!(registration_params)
+
+    logged_in_conn = login!(Map.put(registration_params, :remember, "true"))
     logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
 
-    assert redirected_to(logged_out_conn) ==
-             Routes.user_path(logged_out_conn, :start_registration_form)
+    assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :login_form)
 
-    assert Plug.Conn.get_session(logged_out_conn) == %{}
+    assert get_session(logged_out_conn) == %{}
     assert is_nil(logged_out_conn.assigns.current_user)
+    assert logged_out_conn.resp_cookies["auth_token"].max_age == 0
 
     refute still_logged_in?(logged_in_conn)
   end
@@ -228,7 +265,7 @@ defmodule Demo.Interface.UserTest do
   defp finish_path(email) do
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
-        ~r[http://.*(?<finish_path>/finish_registration_form/.*)]
+        ~r[http://.*(?<finish_path>/finish_registration/.*)]
         |> Regex.named_captures(registration_email.text_body)
         |> Map.fetch!("finish_path")
     after
@@ -238,6 +275,27 @@ defmodule Demo.Interface.UserTest do
 
   defp valid_registration_params,
     do: %{email: "#{unique("username")}@foo.bar", password: "123456789012"}
+
+  defp login!(params) do
+    {:ok, conn} = login(params)
+    conn
+  end
+
+  defp login(params) do
+    params = Map.merge(%{remember: "false"}, Map.new(params))
+    conn = post(build_conn(), "/login", %{user: params})
+
+    if params.remember == "true" do
+      assert %{"auth_token" => %{max_age: max_age, same_site: "Lax"}} = conn.resp_cookies
+      assert max_age == Model.Token.validity(:auth) * 24 * 60 * 60
+    end
+
+    with :ok <- validate(conn.status == 302, conn) do
+      conn = conn |> recycle() |> get(redirected_to(conn))
+      assert conn.status == 200
+      {:ok, conn}
+    end
+  end
 
   defp expire_last_token(days \\ 60) do
     last_token = Repo.one!(from Model.Token, limit: 1, order_by: [desc: :inserted_at])

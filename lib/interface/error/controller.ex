@@ -3,10 +3,12 @@
 defmodule Demo.Interface.Error.Controller do
   use Phoenix.Controller
 
-  def call(conn, {:error, :not_found}) do
+  def call(conn, {:error, status}) when is_atom(status) do
+    code = Plug.Conn.Status.code(status)
+
     conn
-    |> put_status(:not_found)
+    |> put_status(code)
     |> put_view(Demo.Interface.Error.View)
-    |> render(:"404")
+    |> render("#{code}.html")
   end
 end
