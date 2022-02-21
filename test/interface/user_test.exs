@@ -83,6 +83,12 @@ defmodule Demo.Interface.UserTest do
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
+    test "succeeds with valid data" do
+      token = start_registration!(new_email())
+      assert {:ok, conn} = finish_registration(token, new_password())
+      assert conn.request_path == Routes.user_path(conn, :welcome)
+    end
+
     test "rejects invalid password" do
       token = start_registration!(new_email())
 
