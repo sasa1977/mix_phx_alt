@@ -62,10 +62,10 @@ defmodule Demo.Interface.UserTest do
     end
 
     test "succeds without sending an email if the email address is taken" do
-      params = valid_registration_params()
-      register!(params)
+      email = new_email()
+      register!(email: email)
 
-      assert {:ok, token} = start_registration(params.email)
+      assert {:ok, token} = start_registration(email)
       assert token == nil
     end
   end
@@ -84,7 +84,7 @@ defmodule Demo.Interface.UserTest do
     end
 
     test "rejects invalid password" do
-      token = start_registration!(valid_registration_params().email)
+      token = start_registration!(new_email())
 
       assert {:error, conn} = finish_registration(token, nil)
       assert "can't be blank" in errors(conn, :password)
@@ -100,20 +100,19 @@ defmodule Demo.Interface.UserTest do
     end
 
     test "fails for invalid token" do
-      password = valid_registration_params().password
-      assert {:error, conn} = finish_registration("invalid_token", password)
+      assert {:error, conn} = finish_registration("invalid_token", new_password())
       assert html_response(conn, 404)
     end
 
     test "fails if the user is already activated" do
-      params = valid_registration_params()
+      email = new_email()
 
-      token1 = start_registration!(params.email)
-      token2 = start_registration!(params.email)
+      token1 = start_registration!(email)
+      token2 = start_registration!(email)
 
-      finish_registration!(token1, params.password)
+      finish_registration!(token1, new_password())
 
-      assert {:error, conn} = finish_registration(token2, params.password)
+      assert {:error, conn} = finish_registration(token2, new_password())
       assert html_response(conn, 404)
     end
 
@@ -185,10 +184,10 @@ defmodule Demo.Interface.UserTest do
     end
 
     test "creates the token if the user exists" do
-      registration_params = valid_registration_params()
-      register!(registration_params)
+      email = new_email()
+      register!(email: email)
 
-      assert {:ok, token} = start_password_reset(registration_params.email)
+      assert {:ok, token} = start_password_reset(email)
       assert token != nil
     end
 
@@ -217,9 +216,9 @@ defmodule Demo.Interface.UserTest do
 
   describe "reset password" do
     test "form is rendered for a guest" do
-      registration_params = valid_registration_params()
-      register!(registration_params)
-      token = start_password_reset!(registration_params.email)
+      email = new_email()
+      register!(email: email)
+      token = start_password_reset!(email)
 
       conn = get(build_conn(), "/reset_password/#{token}")
       response = html_response(conn, 200)
@@ -237,7 +236,7 @@ defmodule Demo.Interface.UserTest do
       register!(registration_params)
       token = start_password_reset!(registration_params.email)
 
-      new_password = valid_registration_params().password
+      new_password = new_password()
       assert {:ok, conn} = reset_password(token, new_password)
       assert conn.request_path == Routes.user_path(conn, :welcome)
 
@@ -246,27 +245,25 @@ defmodule Demo.Interface.UserTest do
     end
 
     test "fails for invalid token" do
-      assert {:error, conn} =
-               reset_password("invalid_token", valid_registration_params().password)
-
+      assert {:error, conn} = reset_password("invalid_token", new_password())
       assert html_response(conn, 404)
     end
 
     test "token can only be used once" do
-      registration_params = valid_registration_params()
-      register!(registration_params)
-      token = start_password_reset!(registration_params.email)
+      email = new_email()
+      register!(email: email)
+      token = start_password_reset!(email)
 
-      reset_password!(token, valid_registration_params().password)
+      reset_password!(token, new_password())
 
-      assert {:error, conn} = reset_password(token, valid_registration_params().password)
+      assert {:error, conn} = reset_password(token, new_password())
       assert html_response(conn, 404)
     end
 
     test "rejects invalid password" do
-      registration_params = valid_registration_params()
-      register!(registration_params)
-      token = start_password_reset!(registration_params.email)
+      email = new_email()
+      register!(email: email)
+      token = start_password_reset!(email)
 
       assert {:error, conn} = reset_password(token, nil)
       assert "can't be blank" in errors(conn, :password)
@@ -299,14 +296,14 @@ defmodule Demo.Interface.UserTest do
   end
 
   test "periodic token cleanup deletes expired tokens" do
-    start_registration!(valid_registration_params().email)
+    start_registration!(new_email())
     expire_last_token(_days = 7)
 
     register!()
     expire_last_token(_days = 60)
 
     conn1 = register!()
-    token1 = start_registration!(valid_registration_params().email)
+    token1 = start_registration!(new_email())
 
     Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.User.TokenCleanup)
     {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.User.TokenCleanup)
@@ -373,12 +370,10 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
-  defp valid_registration_params do
-    %{
-      email: "#{unique("username")}@foo.bar",
-      password: unique("12345678901")
-    }
-  end
+  defp valid_registration_params, do: %{email: new_email(), password: new_password()}
+
+  defp new_email, do: "#{unique("username")}@foo.bar"
+  defp new_password, do: unique("12345678901")
 
   defp login!(params) do
     {:ok, conn} = login(params)
