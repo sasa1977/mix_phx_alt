@@ -2,7 +2,6 @@ defmodule Demo.Interface.User.RegistrationTest do
   use Demo.Test.ConnCase, async: true
 
   import Demo.Test.Client
-  alias Demo.Core.{Model, Repo}
 
   describe "start registration" do
     test "form is rendered for a guest" do
@@ -91,7 +90,7 @@ defmodule Demo.Interface.User.RegistrationTest do
 
       # token of a wrong type
       token = start_registration!(new_email())
-      Repo.update_all(Model.Token, set: [type: :auth])
+      update_last_token(type: :auth)
 
       assert {:error, conn} = finish_registration(token, new_password())
       assert html_response(conn, 404)

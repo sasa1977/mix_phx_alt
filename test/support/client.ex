@@ -152,19 +152,34 @@ defmodule Demo.Test.Client do
     end
   end
 
-  @spec expire_last_token(pos_integer) :: :ok
-  def expire_last_token(days \\ 60) do
+  defmacro update_last_token(set) do
+    quote do
+      import Ecto.Query
+
+      {1, _} =
+        Repo.update_all(
+          from(token in Model.Token,
+            where:
+              token.id in subquery(
+                from last_token in Model.Token,
+                  order_by: [desc: :inserted_at],
+                  limit: 1,
+                  select: last_token.id
+              ),
+            update: [set: unquote(set)]
+          ),
+          []
+        )
+
+      :ok
+    end
+  end
+
+  @spec expire_last_token :: :ok
+  def expire_last_token do
     last_token = Repo.one!(from Model.Token, limit: 1, order_by: [desc: :inserted_at])
-
-    {1, _} =
-      Repo.update_all(
-        from(Model.Token,
-          where: [id: ^last_token.id],
-          update: [set: [inserted_at: ago(^days, "day")]]
-        ),
-        []
-      )
-
-    :ok
+    days = Model.Token.validity(last_token.type)
+    inserted_at = DateTime.utc_now() |> DateTime.add(-days * 24 * 60 * 60, :second)
+    update_last_token(inserted_at: ^inserted_at)
   end
 end

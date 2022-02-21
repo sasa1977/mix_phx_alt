@@ -4,8 +4,6 @@ defmodule Demo.Interface.User.LoginTest do
   import Demo.Test.Client
   import Ecto.Query
 
-  alias Demo.Core.{Model, Repo}
-
   describe "login" do
     test "succeeds with valid parameters" do
       params = valid_registration_params()
@@ -32,7 +30,7 @@ defmodule Demo.Interface.User.LoginTest do
       register!(params)
 
       conn = login!(Map.merge(params, %{remember: "true"}))
-      invalidate_all_tokens()
+      update_last_token(hash: fragment("digest(gen_random_uuid()::text, 'sha256')::bytea"))
 
       conn = conn |> recycle_no_session() |> get("/")
       assert redirected_to(conn) == Routes.user_path(conn, :login)
@@ -43,7 +41,7 @@ defmodule Demo.Interface.User.LoginTest do
       register!(params)
 
       conn = login!(Map.merge(params, %{remember: "true"}))
-      Repo.update_all(Model.Token, set: [type: :password_reset])
+      update_last_token(type: :password_reset)
 
       conn = conn |> recycle_no_session() |> get("/")
       assert redirected_to(conn) == Routes.user_path(conn, :login)
@@ -75,15 +73,6 @@ defmodule Demo.Interface.User.LoginTest do
       assert {:error, conn} = login(params)
       assert conn.resp_body =~ "Invalid email or password"
     end
-  end
-
-  defp invalidate_all_tokens do
-    Repo.update_all(
-      from(Model.Token,
-        update: [set: [hash: fragment("digest(gen_random_uuid()::text, 'sha256')::bytea")]]
-      ),
-      []
-    )
   end
 
   defp recycle_no_session(conn), do: conn |> recycle() |> delete_req_cookie("_demo_key")
