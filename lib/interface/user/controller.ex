@@ -22,19 +22,16 @@ defmodule Demo.Interface.User.Controller do
     end
   end
 
-  def finish_registration_form(conn, %{"token" => token}) do
-    conn
-    |> put_session(:confirm_email_token, token)
-    |> render(:finish_registration, changeset: user_changeset())
-  end
+  def finish_registration_form(conn, %{"token" => token}),
+    do: render(conn, :finish_registration, token: token, changeset: user_changeset())
 
-  def finish_registration(conn, %{"user" => %{"password" => password}}) do
-    case User.finish_registration(get_session(conn, :confirm_email_token), password) do
+  def finish_registration(conn, %{"token" => token, "user" => %{"password" => password}}) do
+    case User.finish_registration(token, password) do
       {:ok, token} ->
         conn |> put_flash(:info, "User activated successfully.") |> on_authenticated(token)
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :finish_registration, changeset: changeset)
+        render(conn, :finish_registration, token: token, changeset: changeset)
 
       :error ->
         {:error, :not_found}

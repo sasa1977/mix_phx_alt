@@ -28,7 +28,7 @@ defmodule Demo.Interface.Router do
     post "/start_registration", User.Controller, :start_registration, as: :user
 
     get "/finish_registration/:token", User.Controller, :finish_registration_form, as: :user
-    post "/finish_registration", User.Controller, :finish_registration, as: :user
+    post "/finish_registration/:token", User.Controller, :finish_registration, as: :user
 
     get "/login", User.Controller, :login_form, as: :user
     post "/login", User.Controller, :login, as: :user
