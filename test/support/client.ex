@@ -2,6 +2,9 @@ defmodule Demo.Test.Client do
   import Phoenix.ConnTest
   import Demo.Test.ConnCase
   import Demo.Helpers
+  import Ecto.Query
+
+  alias Demo.Core.{Model, Repo}
 
   # credo:disable-for-next-line Credo.Check.Readability.AliasAs
   alias Demo.Interface.Router.Helpers, as: Routes
@@ -128,5 +131,20 @@ defmodule Demo.Test.Client do
       200 = conn.status
       {:ok, conn}
     end
+  end
+
+  def expire_last_token(days \\ 60) do
+    last_token = Repo.one!(from Model.Token, limit: 1, order_by: [desc: :inserted_at])
+
+    {1, _} =
+      Repo.update_all(
+        from(Model.Token,
+          where: [id: ^last_token.id],
+          update: [set: [inserted_at: ago(^days, "day")]]
+        ),
+        []
+      )
+
+    :ok
   end
 end

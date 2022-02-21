@@ -83,7 +83,24 @@ defmodule Demo.Interface.User.PasswordResetTest do
     end
 
     test "fails for invalid token" do
+      # malformed token
       assert {:error, conn} = reset_password("invalid_token", new_password())
+      assert html_response(conn, 404)
+
+      # confirm email token
+      email = new_email()
+      confirm_email_token = start_registration!(email)
+      finish_registration!(confirm_email_token, new_password())
+
+      assert {:error, conn} = reset_password(confirm_email_token, new_password())
+      assert html_response(conn, 404)
+
+      # auth_token
+      registration_params = valid_registration_params()
+      register!(registration_params)
+      auth_token = login!(registration_params) |> Plug.Conn.get_session(:auth_token)
+
+      assert {:error, conn} = reset_password(auth_token, new_password())
       assert html_response(conn, 404)
     end
 

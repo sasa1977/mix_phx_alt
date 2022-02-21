@@ -2,8 +2,6 @@ defmodule Demo.Interface.UserTest do
   use Demo.Test.ConnCase, async: true
 
   import Demo.Test.Client
-  import Ecto.Query
-
   alias Demo.Core.{Model, Repo}
 
   describe "welcome page" do
@@ -66,20 +64,5 @@ defmodule Demo.Interface.UserTest do
     # this proves that survived tokens are still working
     assert logged_in?(conn1)
     assert {:ok, _} = finish_registration(token1, valid_registration_params().password)
-  end
-
-  defp expire_last_token(days \\ 60) do
-    last_token = Repo.one!(from Model.Token, limit: 1, order_by: [desc: :inserted_at])
-
-    {1, _} =
-      Repo.update_all(
-        from(Model.Token,
-          where: [id: ^last_token.id],
-          update: [set: [inserted_at: ago(^days, "day")]]
-        ),
-        []
-      )
-
-    :ok
   end
 end
