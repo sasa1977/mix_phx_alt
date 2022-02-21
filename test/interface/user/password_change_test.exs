@@ -3,6 +3,56 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
   import Demo.Test.Client
 
+  describe "change password" do
+    test "succeeds with valid parameters" do
+      params = valid_registration_params()
+      previous_conn = register!(params)
+
+      new_password = new_password()
+      assert {:ok, conn} = change_password(params.email, params.password, new_password)
+
+      assert conn.resp_body =~ "Password changed successfully."
+      assert logged_in?(conn)
+      refute logged_in?(previous_conn)
+
+      assert {:ok, _} = login(%{params | password: new_password})
+      assert {:error, _} = login(params)
+    end
+
+    test "deletes all other tokens" do
+      params = valid_registration_params()
+      register!(params)
+
+      # create other tokens
+      login!(params)
+      login!(Map.put(params, :remember, "true"))
+      start_password_reset!(params.email)
+
+      change_password!(params.email, params.password, new_password())
+
+      # there should be just one token (created during the password change)
+      assert Demo.Core.Repo.aggregate(Demo.Core.Model.Token, :count) == 1
+    end
+
+    defp change_password!(email, current, new) do
+      {:ok, conn} = change_password(email, current, new)
+      conn
+    end
+
+    defp change_password(email, current, new) do
+      conn =
+        login!(email: email, password: current)
+        |> recycle()
+        |> post("/change_password", password: %{current: current, new: new})
+
+      with :ok <- validate(conn.status == 302, conn) do
+        conn = conn |> recycle() |> get(redirected_to(conn))
+        200 = conn.status
+        {:ok, conn}
+      end
+    end
+  end
+
   describe "start password reset" do
     test "form is rendered for a guest" do
       conn = get(build_conn(), "/start_password_reset")

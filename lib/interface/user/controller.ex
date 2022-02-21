@@ -73,8 +73,22 @@ defmodule Demo.Interface.User.Controller do
   end
 
   # ------------------------------------------------------------------------
-  # Password reset
+  # Password change and reset
   # ------------------------------------------------------------------------
+
+    def change_password(conn, %{"password" => password}) do
+    %{"current" => current, "new" => new} = password
+
+    case User.change_password(conn.assigns.current_user, current, new) do
+      {:ok, auth_token} ->
+        conn
+        |> put_flash(:info, "Password changed successfully.")
+        |> on_authenticated(auth_token)
+
+      {:error, _changeset} ->
+        {:error, 400}
+    end
+  end
 
   def start_password_reset_form(conn, _params),
     do: render(conn, :start_password_reset, changeset: user_changeset())
