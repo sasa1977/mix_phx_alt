@@ -110,8 +110,8 @@ defmodule Demo.Core.User do
           :ok | {:error, Ecto.Changeset.t()}
   def start_password_reset(email, url_fun) do
     with :ok <- validate_email(email) do
-      if Repo.exists?(where(User, email: ^email)) do
-        token = create_token!(nil, :password_reset)
+      if user = Repo.one(User, email: email) do
+        token = create_token!(user, :password_reset)
 
         Demo.Core.Mailer.send(
           email,
@@ -123,6 +123,23 @@ defmodule Demo.Core.User do
       # To prevent enumeration attacks, this operation will always succeed, even if the email doesn't exist.
       :ok
     end
+  end
+
+  @spec reset_password(password_reset_token, String.t()) ::
+          {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
+  def reset_password(token, password) do
+    Repo.transact(fn ->
+      with {:ok, token} <- fetch_token(token, :password_reset),
+           :ok <- validate(token != nil),
+           {:ok, user} <-
+             Repo.one!(Ecto.assoc(token, :user))
+             |> change_password_hash(password)
+             |> Repo.update() do
+        # delete the token so it can't be used again
+        Repo.delete(token)
+        {:ok, create_token!(user, :auth)}
+      end
+    end)
   end
 
   defp store_user(email, password) do

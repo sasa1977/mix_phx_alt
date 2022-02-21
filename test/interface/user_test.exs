@@ -178,17 +178,50 @@ defmodule Demo.Interface.UserTest do
   end
 
   describe "start password reset" do
-    test "sends the reset link to a known user" do
+    test "creates the token if the user exists" do
       registration_params = valid_registration_params()
       register!(registration_params)
 
-      assert {:ok, reset_link} = start_password_reset(registration_params.email)
-      assert reset_link != nil
+      assert {:ok, token} = start_password_reset(registration_params.email)
+      assert token != nil
     end
 
-    test "doesn't send the link to an unknown user" do
-      assert {:ok, reset_link} = start_password_reset("foo@bar.baz")
-      assert reset_link == nil
+    test "doesn't create the token if the user doesn't exist" do
+      assert {:ok, token} = start_password_reset("unknown_user@foo.bar")
+      assert token == nil
+    end
+  end
+
+  describe "reset password" do
+    test "succeeds with a valid token" do
+      registration_params = valid_registration_params()
+      register!(registration_params)
+      token = start_password_reset!(registration_params.email)
+
+      new_password = valid_registration_params().password
+      assert {:ok, conn} = reset_password(token, new_password)
+      assert conn.request_path == Routes.user_path(conn, :welcome)
+
+      assert {:error, _} = login(registration_params)
+      assert {:ok, _} = login(%{registration_params | password: new_password})
+    end
+
+    test "fails for invalid token" do
+      assert {:error, conn} =
+               reset_password("invalid_token", valid_registration_params().password)
+
+      assert html_response(conn, 404)
+    end
+
+    test "token can only be used once" do
+      registration_params = valid_registration_params()
+      register!(registration_params)
+      token = start_password_reset!(registration_params.email)
+
+      reset_password!(token, valid_registration_params().password)
+
+      assert {:error, conn} = reset_password(token, valid_registration_params().password)
+      assert html_response(conn, 404)
     end
   end
 
@@ -205,7 +238,7 @@ defmodule Demo.Interface.UserTest do
     assert is_nil(logged_out_conn.assigns.current_user)
     assert logged_out_conn.resp_cookies["auth_token"].max_age == 0
 
-    refute still_logged_in?(logged_in_conn)
+    refute logged_in?(logged_in_conn)
   end
 
   test "periodic token cleanup deletes expired tokens" do
@@ -224,11 +257,11 @@ defmodule Demo.Interface.UserTest do
     assert Repo.aggregate(Model.Token, :count) == 2
 
     # this proves that survived tokens are still working
-    assert still_logged_in?(conn1)
+    assert logged_in?(conn1)
     assert {:ok, _} = finish_registration(valid_registration_params(), finish_path)
   end
 
-  defp still_logged_in?(conn) do
+  defp logged_in?(conn) do
     conn = conn |> recycle() |> get(Routes.user_path(conn, :welcome))
     conn.status == 200 and conn.assigns.current_user != nil
   end
@@ -288,8 +321,12 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
-  defp valid_registration_params,
-    do: %{email: "#{unique("username")}@foo.bar", password: "123456789012"}
+  defp valid_registration_params do
+    %{
+      email: "#{unique("username")}@foo.bar",
+      password: unique("12345678901")
+    }
+  end
 
   defp login!(params) do
     {:ok, conn} = login(params)
@@ -312,23 +349,44 @@ defmodule Demo.Interface.UserTest do
     end
   end
 
+  defp start_password_reset!(email) do
+    {:ok, token} = start_password_reset(email)
+    false = is_nil(token)
+    token
+  end
+
   defp start_password_reset(email) do
     conn = post(build_conn(), "/start_password_reset", %{user: %{email: email}})
     assert conn.status == 200
 
     if conn.resp_body =~ "The email with further instructions has been sent to #{email}",
-      do: {:ok, finish_password_reset(email)},
+      do: {:ok, password_reset_token(email)},
       else: {:error, conn}
   end
 
-  defp finish_password_reset(email) do
+  defp password_reset_token(email) do
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Password reset"} = mail} ->
-        ~r[http://.*(?<path>/reset_password/.*)]
+        ~r[http://.*/reset_password/(?<token>.*)]
         |> Regex.named_captures(mail.text_body)
-        |> Map.fetch!("path")
+        |> Map.fetch!("token")
     after
       0 -> nil
+    end
+  end
+
+  defp reset_password!(token, password) do
+    {:ok, conn} = reset_password(token, password)
+    conn
+  end
+
+  defp reset_password(token, password) do
+    conn = post(build_conn(), "/reset_password", %{token: token, user: %{password: password}})
+
+    with :ok <- validate(conn.status == 302, conn) do
+      conn = conn |> recycle() |> get(redirected_to(conn))
+      assert conn.status == 200
+      {:ok, conn}
     end
   end
 

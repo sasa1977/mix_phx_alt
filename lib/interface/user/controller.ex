@@ -72,6 +72,19 @@ defmodule Demo.Interface.User.Controller do
     end
   end
 
+  def reset_password(conn, %{"token" => token, "user" => %{"password" => password}}) do
+    case User.reset_password(token, password) do
+      {:ok, token} ->
+        conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)
+
+      {:error, %Ecto.Changeset{}} ->
+        {:error, 400}
+
+      :error ->
+        {:error, :not_found}
+    end
+  end
+
   defp on_authenticated(conn, auth_token, opts \\ []) do
     conn
     |> Auth.set(auth_token, opts)
