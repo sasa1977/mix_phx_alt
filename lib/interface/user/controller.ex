@@ -13,7 +13,7 @@ defmodule Demo.Interface.User.Controller do
   # ------------------------------------------------------------------------
 
   def start_registration_form(conn, _params),
-    do: render(conn, :start_registration, changeset: Ecto.Changeset.change(%Model.User{}))
+    do: render(conn, :start_registration, changeset: user_changeset())
 
   def start_registration(conn, %{"user" => %{"email" => email}}) do
     case User.start_registration(email, &Routes.user_url(conn, :finish_registration_form, &1)) do
@@ -25,7 +25,7 @@ defmodule Demo.Interface.User.Controller do
   def finish_registration_form(conn, %{"token" => token}) do
     conn
     |> put_session(:confirm_email_token, token)
-    |> render(:finish_registration, changeset: Ecto.Changeset.change(%Model.User{}))
+    |> render(:finish_registration, changeset: user_changeset())
   end
 
   def finish_registration(conn, %{"user" => %{"password" => password}}) do
@@ -35,6 +35,36 @@ defmodule Demo.Interface.User.Controller do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :finish_registration, changeset: changeset)
+
+      :error ->
+        {:error, :not_found}
+    end
+  end
+
+  # ------------------------------------------------------------------------
+  # Password reset
+  # ------------------------------------------------------------------------
+
+  def start_password_reset_form(conn, _params),
+    do: render(conn, :start_password_reset, changeset: user_changeset())
+
+  def start_password_reset(conn, %{"user" => %{"email" => email}}) do
+    case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
+      :ok -> render(conn, :instructions_sent, email: email)
+      {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
+    end
+  end
+
+  def reset_password_form(conn, %{"token" => token}),
+    do: render(conn, :reset_password, changeset: user_changeset(), token: token)
+
+  def reset_password(conn, %{"token" => token, "user" => %{"password" => password}}) do
+    case User.reset_password(token, password) do
+      {:ok, token} ->
+        conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render(conn, :reset_password, changeset: changeset, token: token)
 
       :error ->
         {:error, :not_found}
@@ -65,39 +95,11 @@ defmodule Demo.Interface.User.Controller do
     |> redirect(to: Routes.user_path(conn, :login_form))
   end
 
-  def start_password_reset_form(conn, _params),
-    do: render(conn, :start_password_reset, changeset: Ecto.Changeset.change(%Model.User{}))
-
-  def start_password_reset(conn, %{"user" => %{"email" => email}}) do
-    case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
-      :ok -> render(conn, :instructions_sent, email: email)
-      {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
-    end
-  end
-
-  def reset_password_form(conn, %{"token" => token}) do
-    render(conn, :reset_password,
-      changeset: Ecto.Changeset.change(%Model.User{}),
-      token: token
-    )
-  end
-
-  def reset_password(conn, %{"token" => token, "user" => %{"password" => password}}) do
-    case User.reset_password(token, password) do
-      {:ok, token} ->
-        conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :reset_password, changeset: changeset, token: token)
-
-      :error ->
-        {:error, :not_found}
-    end
-  end
-
   defp on_authenticated(conn, auth_token, opts \\ []) do
     conn
     |> Auth.set(auth_token, opts)
     |> redirect(to: Routes.user_path(conn, :welcome))
   end
+
+  defp user_changeset, do: Ecto.Changeset.change(%Model.User{})
 end
