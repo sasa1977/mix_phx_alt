@@ -222,6 +222,22 @@ defmodule Demo.Interface.UserTest do
   end
 
   describe "reset password" do
+    test "form is rendered for a guest" do
+      registration_params = valid_registration_params()
+      register!(registration_params)
+      token = start_password_reset!(registration_params.email)
+
+      conn = get(build_conn(), "/reset_password/#{token}")
+      response = html_response(conn, 200)
+      assert response =~ ~s/<input id="user_password" name="user[password]/
+      refute response =~ "Log out"
+    end
+
+    test "form redirects if the user is authenticated" do
+      conn = register!() |> recycle() |> get("/reset_password/some_token")
+      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
+    end
+
     test "succeeds with a valid token" do
       registration_params = valid_registration_params()
       register!(registration_params)
@@ -251,6 +267,24 @@ defmodule Demo.Interface.UserTest do
 
       assert {:error, conn} = reset_password(token, valid_registration_params().password)
       assert html_response(conn, 404)
+    end
+
+    test "rejects invalid password" do
+      registration_params = valid_registration_params()
+      register!(registration_params)
+      token = start_password_reset!(registration_params.email)
+
+      assert {:error, conn} = reset_password(token, nil)
+      assert "can't be blank" in errors(conn, :password)
+
+      assert {:error, conn} = reset_password(token, "")
+      assert "can't be blank" in errors(conn, :password)
+
+      assert {:error, conn} = reset_password(token, "12345678901")
+      assert "should be at least 12 characters" in errors(conn, :password)
+
+      assert {:error, conn} = reset_password(token, String.duplicate("1", 73))
+      assert "should be at most 72 characters" in errors(conn, :password)
     end
   end
 
@@ -410,7 +444,7 @@ defmodule Demo.Interface.UserTest do
   end
 
   defp reset_password(token, password) do
-    conn = post(build_conn(), "/reset_password", %{token: token, user: %{password: password}})
+    conn = post(build_conn(), "/reset_password/#{token}", user: %{password: password})
 
     with :ok <- validate(conn.status == 302, conn) do
       conn = conn |> recycle() |> get(redirected_to(conn))

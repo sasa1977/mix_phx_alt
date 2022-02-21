@@ -75,13 +75,20 @@ defmodule Demo.Interface.User.Controller do
     end
   end
 
+  def reset_password_form(conn, %{"token" => token}) do
+    render(conn, :reset_password,
+      changeset: Ecto.Changeset.change(%Model.User{}),
+      token: token
+    )
+  end
+
   def reset_password(conn, %{"token" => token, "user" => %{"password" => password}}) do
     case User.reset_password(token, password) do
       {:ok, token} ->
         conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)
 
-      {:error, %Ecto.Changeset{}} ->
-        {:error, 400}
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render(conn, :reset_password, changeset: changeset, token: token)
 
       :error ->
         {:error, :not_found}
