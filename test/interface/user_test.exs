@@ -1,6 +1,7 @@
 defmodule Demo.Interface.UserTest do
   use Demo.Test.ConnCase, async: true
 
+  import Demo.Test.Client
   import Ecto.Query
 
   alias Demo.Core.{Model, Repo}
@@ -332,127 +333,7 @@ defmodule Demo.Interface.UserTest do
     assert {:ok, _} = finish_registration(token1, valid_registration_params().password)
   end
 
-  defp logged_in?(conn) do
-    conn = conn |> recycle() |> get(Routes.user_path(conn, :welcome))
-    conn.status == 200 and conn.assigns.current_user != nil
-  end
-
   defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)
-
-  defp register!(params \\ %{}) do
-    params = Map.merge(valid_registration_params(), Map.new(params))
-
-    start_registration!(params.email)
-    |> finish_registration!(params.password)
-  end
-
-  defp start_registration!(email) do
-    {:ok, token} = start_registration(email)
-    false = is_nil(token)
-    token
-  end
-
-  defp start_registration(email) do
-    conn = post(build_conn(), "/start_registration", %{user: %{email: email}})
-    assert conn.status == 200
-
-    if conn.resp_body =~ "The email with further instructions has been sent to #{email}",
-      do: {:ok, confirm_email_token(email)},
-      else: {:error, conn}
-  end
-
-  defp confirm_email_token(email) do
-    receive do
-      {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
-        ~r[http://.*/finish_registration/(?<token>.*)]
-        |> Regex.named_captures(registration_email.text_body)
-        |> Map.fetch!("token")
-    after
-      0 -> nil
-    end
-  end
-
-  defp finish_registration!(token, password) do
-    {:ok, conn} = finish_registration(token, password)
-    conn
-  end
-
-  defp finish_registration(token, password) do
-    conn = post(build_conn(), "/finish_registration/#{token}", %{user: %{password: password}})
-
-    with :ok <- validate(conn.status == 302, conn) do
-      conn = conn |> recycle() |> get(redirected_to(conn))
-      assert conn.status == 200
-      {:ok, conn}
-    end
-  end
-
-  defp valid_registration_params, do: %{email: new_email(), password: new_password()}
-
-  defp new_email, do: "#{unique("username")}@foo.bar"
-  defp new_password, do: unique("12345678901")
-
-  defp login!(params) do
-    {:ok, conn} = login(params)
-    conn
-  end
-
-  defp login(params) do
-    params = Map.merge(%{remember: "false"}, Map.new(params))
-    conn = post(build_conn(), "/login", %{user: params})
-
-    if params.remember == "true" do
-      assert %{"auth_token" => %{max_age: max_age, same_site: "Lax"}} = conn.resp_cookies
-      assert max_age == Model.Token.validity(:auth) * 24 * 60 * 60
-    end
-
-    with :ok <- validate(conn.status == 302, conn) do
-      conn = conn |> recycle() |> get(redirected_to(conn))
-      assert conn.status == 200
-      {:ok, conn}
-    end
-  end
-
-  defp start_password_reset!(email) do
-    {:ok, token} = start_password_reset(email)
-    false = is_nil(token)
-    token
-  end
-
-  defp start_password_reset(email) do
-    conn = post(build_conn(), "/start_password_reset", %{user: %{email: email}})
-    assert conn.status == 200
-
-    if conn.resp_body =~ "The email with further instructions has been sent to #{email}",
-      do: {:ok, password_reset_token(email)},
-      else: {:error, conn}
-  end
-
-  defp password_reset_token(email) do
-    receive do
-      {:email, %{to: [{nil, ^email}], subject: "Password reset"} = mail} ->
-        ~r[http://.*/reset_password/(?<token>.*)]
-        |> Regex.named_captures(mail.text_body)
-        |> Map.fetch!("token")
-    after
-      0 -> nil
-    end
-  end
-
-  defp reset_password!(token, password) do
-    {:ok, conn} = reset_password(token, password)
-    conn
-  end
-
-  defp reset_password(token, password) do
-    conn = post(build_conn(), "/reset_password/#{token}", user: %{password: password})
-
-    with :ok <- validate(conn.status == 302, conn) do
-      conn = conn |> recycle() |> get(redirected_to(conn))
-      assert conn.status == 200
-      {:ok, conn}
-    end
-  end
 
   defp expire_last_token(days \\ 60) do
     last_token = Repo.one!(from Model.Token, limit: 1, order_by: [desc: :inserted_at])
