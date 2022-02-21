@@ -72,10 +72,16 @@ defmodule Demo.Interface.UserTest do
 
   describe "finish registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/finish_registration/some_token")
+      token = start_registration!(new_email())
+      conn = get(build_conn(), "/finish_registration/#{token}")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_password" name="user[password]/
       refute response =~ "Log out"
+    end
+
+    test "form returns 404 if the token is invalid" do
+      conn = get(build_conn(), "/finish_registration/invalid_token")
+      assert conn.status == 404
     end
 
     test "form redirects if the user is authenticated" do
@@ -230,6 +236,11 @@ defmodule Demo.Interface.UserTest do
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_password" name="user[password]/
       refute response =~ "Log out"
+    end
+
+    test "form returns 404 if the token is invalid" do
+      conn = get(build_conn(), "/reset_password/invalid_token")
+      assert conn.status == 404
     end
 
     test "form redirects if the user is authenticated" do

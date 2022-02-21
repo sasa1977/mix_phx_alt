@@ -142,6 +142,12 @@ defmodule Demo.Core.User do
     end)
   end
 
+  @spec validate_token(String.t(), Token.type()) :: :ok | :error
+  def validate_token(token, type) do
+    with {:ok, hash} <- token_hash(token),
+         do: validate(Repo.exists?(valid_tokens_query(), hash: hash, type: type))
+  end
+
   defp store_user(email, password) do
     %User{}
     |> change(email: email)
