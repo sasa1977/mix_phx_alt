@@ -23,12 +23,7 @@ defmodule Demo.Interface.User.LoginTest do
       params = valid_registration_params()
       register!(params)
 
-      conn =
-        login!(Map.merge(params, %{remember: "true"}))
-        |> recycle()
-        |> delete_req_cookie("_demo_key")
-        |> get("/")
-
+      conn = login!(Map.merge(params, %{remember: "true"})) |> recycle_no_session() |> get("/")
       assert html_response(conn, 200) =~ "Log out"
     end
 
@@ -39,7 +34,7 @@ defmodule Demo.Interface.User.LoginTest do
       conn = login!(Map.merge(params, %{remember: "true"}))
       invalidate_all_tokens()
 
-      conn = conn |> recycle() |> delete_req_cookie("_demo_key") |> get("/")
+      conn = conn |> recycle_no_session() |> get("/")
       assert redirected_to(conn) == Routes.user_path(conn, :login)
     end
 
@@ -50,7 +45,7 @@ defmodule Demo.Interface.User.LoginTest do
       conn = login!(Map.merge(params, %{remember: "true"}))
       Repo.update_all(Model.Token, set: [type: :password_reset])
 
-      conn = conn |> recycle() |> delete_req_cookie("_demo_key") |> get("/")
+      conn = conn |> recycle_no_session() |> get("/")
       assert redirected_to(conn) == Routes.user_path(conn, :login)
     end
 
@@ -90,4 +85,6 @@ defmodule Demo.Interface.User.LoginTest do
       []
     )
   end
+
+  defp recycle_no_session(conn), do: conn |> recycle() |> delete_req_cookie("_demo_key")
 end
