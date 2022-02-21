@@ -13,28 +13,63 @@ defmodule Demo.Interface.User.Controller do
   # ------------------------------------------------------------------------
 
   def start_registration_form(conn, _params),
-    do: render(conn, :start_registration, changeset: Ecto.Changeset.change(%Model.User{}))
+    do: render(conn, :start_registration, changeset: user_changeset())
 
   def start_registration(conn, %{"user" => %{"email" => email}}) do
     case User.start_registration(email, &Routes.user_url(conn, :finish_registration_form, &1)) do
-      :ok -> render(conn, :activation_pending, email: email)
+      :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_registration, changeset: changeset)
     end
   end
 
   def finish_registration_form(conn, %{"token" => token}) do
-    conn
-    |> put_session(:confirm_email_token, token)
-    |> render(:finish_registration, changeset: Ecto.Changeset.change(%Model.User{}))
+    case User.validate_token(token, :confirm_email) do
+      :ok -> render(conn, :finish_registration, token: token, changeset: user_changeset())
+      :error -> {:error, :not_found}
+    end
   end
 
-  def finish_registration(conn, %{"user" => %{"password" => password}}) do
-    case User.finish_registration(get_session(conn, :confirm_email_token), password) do
+  def finish_registration(conn, %{"token" => token, "user" => %{"password" => password}}) do
+    case User.finish_registration(token, password) do
       {:ok, token} ->
         conn |> put_flash(:info, "User activated successfully.") |> on_authenticated(token)
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :finish_registration, changeset: changeset)
+        render(conn, :finish_registration, token: token, changeset: changeset)
+
+      :error ->
+        {:error, :not_found}
+    end
+  end
+
+  # ------------------------------------------------------------------------
+  # Password reset
+  # ------------------------------------------------------------------------
+
+  def start_password_reset_form(conn, _params),
+    do: render(conn, :start_password_reset, changeset: user_changeset())
+
+  def start_password_reset(conn, %{"user" => %{"email" => email}}) do
+    case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
+      :ok -> render(conn, :instructions_sent, email: email)
+      {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
+    end
+  end
+
+  def reset_password_form(conn, %{"token" => token}) do
+    case User.validate_token(token, :password_reset) do
+      :ok -> render(conn, :reset_password, changeset: user_changeset(), token: token)
+      :error -> {:error, :not_found}
+    end
+  end
+
+  def reset_password(conn, %{"token" => token, "user" => %{"password" => password}}) do
+    case User.reset_password(token, password) do
+      {:ok, token} ->
+        conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render(conn, :reset_password, changeset: changeset, token: token)
 
       :error ->
         {:error, :not_found}
@@ -70,4 +105,6 @@ defmodule Demo.Interface.User.Controller do
     |> Auth.set(auth_token, opts)
     |> redirect(to: Routes.user_path(conn, :welcome))
   end
+
+  defp user_changeset, do: Ecto.Changeset.change(%Model.User{})
 end

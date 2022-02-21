@@ -22,8 +22,12 @@ defmodule Demo.Test.ConnCase do
     on_exit(fn -> SQL.Sandbox.stop_owner(pid) end)
   end
 
+  @doc "Returns a string which starts with the given argument, and ends with a unique suffix."
   @spec unique(String.t()) :: String.t()
-  def unique(prefix), do: "#{prefix}#{System.unique_integer([:monotonic, :positive])}"
+  def unique(prefix) do
+    suffix = System.unique_integer([:monotonic, :positive]) |> Integer.to_string(36)
+    "#{prefix}#{suffix}"
+  end
 
   @spec changeset_errors(Ecto.Changeset.t()) :: %{atom => [String.t()]}
   def changeset_errors(changeset) do

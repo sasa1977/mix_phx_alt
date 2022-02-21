@@ -9,7 +9,9 @@ defmodule Demo.Core.User do
 
   @type confirm_email_token :: String.t()
   @type auth_token :: String.t()
-  @type finish_registration_url_builder :: (confirm_email_token -> String.t())
+  @type password_reset_token :: String.t()
+
+  @type url_builder(arg) :: (arg -> url :: String.t())
 
   @doc """
   Starts the registration process.
@@ -26,7 +28,7 @@ defmodule Demo.Core.User do
   where the user provides the password, which reduces the chances of impersonations (person owning
   the account is not the person with the access to the given email).
   """
-  @spec start_registration(String.t(), finish_registration_url_builder) ::
+  @spec start_registration(String.t(), url_builder(confirm_email_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email, url_fun) do
     with :ok <- validate_email(email) do
@@ -102,6 +104,48 @@ defmodule Demo.Core.User do
   def logout(auth_token) do
     Repo.delete_all(where(Token, hash: ^token_hash!(auth_token), type: :auth))
     :ok
+  end
+
+  @spec start_password_reset(String.t(), url_builder(password_reset_token)) ::
+          :ok | {:error, Ecto.Changeset.t()}
+  def start_password_reset(email, url_fun) do
+    with :ok <- validate_email(email) do
+      if user = Repo.one(User, email: email) do
+        token = create_token!(user, :password_reset)
+
+        Demo.Core.Mailer.send(
+          email,
+          "Password reset",
+          "You can reset the password at the following url:\n#{url_fun.(token)}"
+        )
+      end
+
+      # To prevent enumeration attacks, this operation will always succeed, even if the email doesn't exist.
+      :ok
+    end
+  end
+
+  @spec reset_password(password_reset_token, String.t()) ::
+          {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
+  def reset_password(token, password) do
+    Repo.transact(fn ->
+      with {:ok, token} <- fetch_token(token, :password_reset),
+           :ok <- validate(token != nil),
+           {:ok, user} <-
+             Repo.one!(Ecto.assoc(token, :user))
+             |> change_password_hash(password)
+             |> Repo.update() do
+        # delete the token so it can't be used again
+        Repo.delete(token)
+        {:ok, create_token!(user, :auth)}
+      end
+    end)
+  end
+
+  @spec validate_token(String.t(), Token.type()) :: :ok | :error
+  def validate_token(token, type) do
+    with {:ok, hash} <- token_hash(token),
+         do: validate(Repo.exists?(valid_tokens_query(), hash: hash, type: type))
   end
 
   defp store_user(email, password) do
