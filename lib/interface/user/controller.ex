@@ -65,10 +65,13 @@ defmodule Demo.Interface.User.Controller do
     |> redirect(to: Routes.user_path(conn, :login_form))
   end
 
+  def start_password_reset_form(conn, _params),
+    do: render(conn, :start_password_reset, changeset: Ecto.Changeset.change(%Model.User{}))
+
   def start_password_reset(conn, %{"user" => %{"email" => email}}) do
     case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
       :ok -> render(conn, :instructions_sent, email: email)
-      {:error, _changeset} -> {:error, 400}
+      {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
     end
   end
 

@@ -178,6 +178,18 @@ defmodule Demo.Interface.UserTest do
   end
 
   describe "start password reset" do
+    test "form is rendered for a guest" do
+      conn = get(build_conn(), "/start_password_reset")
+      response = html_response(conn, 200)
+      assert response =~ ~s/<input id="user_email" name="user[email]/
+      refute response =~ "Log out"
+    end
+
+    test "form redirects if the user is authenticated" do
+      conn = register!() |> recycle() |> get("/start_password_reset")
+      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
+    end
+
     test "creates the token if the user exists" do
       registration_params = valid_registration_params()
       register!(registration_params)
@@ -189,6 +201,23 @@ defmodule Demo.Interface.UserTest do
     test "doesn't create the token if the user doesn't exist" do
       assert {:ok, token} = start_password_reset("unknown_user@foo.bar")
       assert token == nil
+    end
+
+    test "rejects invalid email" do
+      assert {:error, conn} = start_password_reset(nil)
+      assert "can't be blank" in errors(conn, :email)
+
+      assert {:error, conn} = start_password_reset("")
+      assert "can't be blank" in errors(conn, :email)
+
+      assert {:error, conn} = start_password_reset("foo bar")
+      assert "must have the @ sign and no spaces" in errors(conn, :email)
+
+      assert {:error, conn} = start_password_reset("foo@ba r")
+      assert "must have the @ sign and no spaces" in errors(conn, :email)
+
+      assert {:error, conn} = start_password_reset("foo@bar.baz" <> String.duplicate("1", 160))
+      assert "should be at most 160 character(s)" in errors(conn, :email)
     end
   end
 

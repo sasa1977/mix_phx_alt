@@ -33,7 +33,9 @@ defmodule Demo.Interface.Router do
     get "/login", User.Controller, :login_form, as: :user
     post "/login", User.Controller, :login, as: :user
 
+    get "/start_password_reset", User.Controller, :start_password_reset_form, as: :user
     post "/start_password_reset", User.Controller, :start_password_reset, as: :user
+
     post "/reset_password", User.Controller, :reset_password, as: :user
   end
 
