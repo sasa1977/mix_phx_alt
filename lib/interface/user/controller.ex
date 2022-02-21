@@ -43,6 +43,36 @@ defmodule Demo.Interface.User.Controller do
   end
 
   # ------------------------------------------------------------------------
+  # Authentication
+  # ------------------------------------------------------------------------
+
+  def login_form(conn, _params),
+    do: render(conn, :login, error_message: nil)
+
+  def login(conn, %{"user" => user}) do
+    %{"email" => email, "password" => password, "remember" => remember?} = user
+
+    case User.login(email, password) do
+      {:ok, token} -> on_authenticated(conn, token, remember?: remember? == "true")
+      :error -> render(conn, :login, error_message: "Invalid email or password")
+    end
+  end
+
+  def logout(conn, _params) do
+    User.logout(Auth.token(conn))
+
+    conn
+    |> Auth.clear()
+    |> redirect(to: Routes.user_path(conn, :login_form))
+  end
+
+  defp on_authenticated(conn, auth_token, opts \\ []) do
+    conn
+    |> Auth.set(auth_token, opts)
+    |> redirect(to: Routes.user_path(conn, :welcome))
+  end
+
+  # ------------------------------------------------------------------------
   # Password reset
   # ------------------------------------------------------------------------
 
@@ -77,34 +107,8 @@ defmodule Demo.Interface.User.Controller do
   end
 
   # ------------------------------------------------------------------------
-  # Authentication
+  # Common
   # ------------------------------------------------------------------------
-
-  def login_form(conn, _params),
-    do: render(conn, :login, error_message: nil)
-
-  def login(conn, %{"user" => user}) do
-    %{"email" => email, "password" => password, "remember" => remember?} = user
-
-    case User.login(email, password) do
-      {:ok, token} -> on_authenticated(conn, token, remember?: remember? == "true")
-      :error -> render(conn, :login, error_message: "Invalid email or password")
-    end
-  end
-
-  def logout(conn, _params) do
-    User.logout(Auth.token(conn))
-
-    conn
-    |> Auth.clear()
-    |> redirect(to: Routes.user_path(conn, :login_form))
-  end
-
-  defp on_authenticated(conn, auth_token, opts \\ []) do
-    conn
-    |> Auth.set(auth_token, opts)
-    |> redirect(to: Routes.user_path(conn, :welcome))
-  end
 
   defp user_changeset, do: Ecto.Changeset.change(%Model.User{})
 end
