@@ -4,7 +4,7 @@ defmodule Demo.Test.Client do
   import Demo.Helpers
   import Ecto.Query
 
-  alias Demo.Core.{Model, Repo}
+  alias Demo.Core.{Model, Repo, User}
 
   # credo:disable-for-next-line Credo.Check.Readability.AliasAs
   alias Demo.Interface.Router.Helpers, as: Routes
@@ -13,11 +13,13 @@ defmodule Demo.Test.Client do
   # using String.to_atom to avoid compile-time dep to the endpoint
   @endpoint String.to_atom("Elixir.Demo.Interface.Endpoint")
 
+  @spec logged_in?(Plug.Conn.t()) :: boolean
   def logged_in?(conn) do
     conn = conn |> recycle() |> get(Routes.user_path(conn, :welcome))
     conn.status == 200 and conn.assigns.current_user != nil
   end
 
+  @spec register!(Keyword.t() | map) :: Plug.Conn.t()
   def register!(params \\ %{}) do
     params = Map.merge(valid_registration_params(), Map.new(params))
 
@@ -25,12 +27,15 @@ defmodule Demo.Test.Client do
     |> finish_registration!(params.password)
   end
 
+  @spec start_registration!(String.t()) :: User.confirm_email_token()
   def start_registration!(email) do
     {:ok, token} = start_registration(email)
     false = is_nil(token)
     token
   end
 
+  @spec start_registration(String.t()) ::
+          {:ok, User.confirm_email_token() | nil} | {:error, Plug.Conn.t()}
   def start_registration(email) do
     conn = post(build_conn(), "/start_registration", %{user: %{email: email}})
     200 = conn.status
@@ -51,11 +56,14 @@ defmodule Demo.Test.Client do
     end
   end
 
+  @spec finish_registration!(User.confirm_email_token(), String.t()) :: Plug.Conn.t()
   def finish_registration!(token, password) do
     {:ok, conn} = finish_registration(token, password)
     conn
   end
 
+  @spec finish_registration(User.confirm_email_token(), String.t()) ::
+          {:ok | :error, Plug.Conn.t()}
   def finish_registration(token, password) do
     conn = post(build_conn(), "/finish_registration/#{token}", %{user: %{password: password}})
 
@@ -66,16 +74,22 @@ defmodule Demo.Test.Client do
     end
   end
 
+  @spec valid_registration_params :: map
   def valid_registration_params, do: %{email: new_email(), password: new_password()}
 
+  @spec new_email :: String.t()
   def new_email, do: "#{unique("username")}@foo.bar"
+
+  @spec new_password :: String.t()
   def new_password, do: unique("12345678901")
 
+  @spec login!(Keyword.t() | map) :: Plug.Conn.t()
   def login!(params) do
     {:ok, conn} = login(params)
     conn
   end
 
+  @spec login(Keyword.t() | map) :: {:ok | :error, Plug.Conn.t()}
   def login(params) do
     params = Map.merge(%{remember: "false"}, Map.new(params))
     conn = post(build_conn(), "/login", %{user: params})
@@ -92,12 +106,15 @@ defmodule Demo.Test.Client do
     end
   end
 
+  @spec start_password_reset!(String.t()) :: User.password_reset_token()
   def start_password_reset!(email) do
     {:ok, token} = start_password_reset(email)
     false = is_nil(token)
     token
   end
 
+  @spec start_password_reset(String.t()) ::
+          {:ok, User.password_reset_token() | nil} | {:error, Plug.Conn.t()}
   def start_password_reset(email) do
     conn = post(build_conn(), "/start_password_reset", %{user: %{email: email}})
     200 = conn.status
@@ -118,11 +135,13 @@ defmodule Demo.Test.Client do
     end
   end
 
+  @spec reset_password!(User.password_reset_token(), String.t()) :: Plug.Conn.t()
   def reset_password!(token, password) do
     {:ok, conn} = reset_password(token, password)
     conn
   end
 
+  @spec reset_password(User.password_reset_token(), String.t()) :: {:ok | :error, Plug.Conn.t()}
   def reset_password(token, password) do
     conn = post(build_conn(), "/reset_password/#{token}", user: %{password: password})
 
@@ -133,6 +152,7 @@ defmodule Demo.Test.Client do
     end
   end
 
+  @spec expire_last_token(pos_integer) :: :ok
   def expire_last_token(days \\ 60) do
     last_token = Repo.one!(from Model.Token, limit: 1, order_by: [desc: :inserted_at])
 
