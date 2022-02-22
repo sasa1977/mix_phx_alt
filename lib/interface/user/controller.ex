@@ -76,7 +76,13 @@ defmodule Demo.Interface.User.Controller do
   # Password change and reset
   # ------------------------------------------------------------------------
 
-    def change_password(conn, %{"password" => password}) do
+  def settings(conn, _params) do
+    render(conn, :settings,
+      password_changeset: Ecto.Changeset.change({%{}, %{current: :string, new: :string}})
+    )
+  end
+
+  def change_password(conn, %{"password" => password}) do
     %{"current" => current, "new" => new} = password
 
     case User.change_password(conn.assigns.current_user, current, new) do
@@ -85,8 +91,8 @@ defmodule Demo.Interface.User.Controller do
         |> put_flash(:info, "Password changed successfully.")
         |> on_authenticated(auth_token)
 
-      {:error, _changeset} ->
-        {:error, 400}
+      {:error, changeset} ->
+        render(conn, :settings, password_changeset: changeset)
     end
   end
 

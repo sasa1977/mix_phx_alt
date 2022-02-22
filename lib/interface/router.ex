@@ -47,6 +47,7 @@ defmodule Demo.Interface.Router do
     get "/", User.Controller, :welcome, as: :user
     delete "/logout", User.Controller, :logout, as: :user
 
+    get "/settings", User.Controller, :settings, as: :user
     post "/change_password", User.Controller, :change_password, as: :user
   end
 

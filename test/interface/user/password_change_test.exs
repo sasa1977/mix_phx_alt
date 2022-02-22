@@ -34,14 +34,43 @@ defmodule Demo.Interface.User.PasswordResetTest do
       assert Demo.Core.Repo.aggregate(Demo.Core.Model.Token, :count) == 1
     end
 
+    test "fails if old password is incorrect" do
+      params = valid_registration_params()
+      conn = register!(params)
+
+      %{email: email, password: password} = params
+
+      assert {:error, conn} = change_password(conn, email, "_#{password}", new_password())
+      assert "is not valid" in errors(conn, :password_changeset, :current)
+    end
+
+    test "rejects invalid new password" do
+      params = valid_registration_params()
+      register!(params)
+
+      %{email: email, password: password} = params
+
+      assert {:error, conn} = change_password(email, password, nil)
+      assert "can't be blank" in errors(conn, :password_changeset, :new)
+
+      assert {:error, conn} = change_password(email, password, "")
+      assert "can't be blank" in errors(conn, :password_changeset, :new)
+
+      assert {:error, conn} = change_password(email, password, "12345678901")
+      assert "should be at least 12 characters" in errors(conn, :password_changeset, :new)
+
+      assert {:error, conn} = change_password(email, password, String.duplicate("1", 73))
+      assert "should be at most 72 characters" in errors(conn, :password_changeset, :new)
+    end
+
     defp change_password!(email, current, new) do
       {:ok, conn} = change_password(email, current, new)
       conn
     end
 
-    defp change_password(email, current, new) do
+    defp change_password(conn \\ nil, email, current, new) do
       conn =
-        login!(email: email, password: current)
+        (conn || login!(email: email, password: current))
         |> recycle()
         |> post("/change_password", password: %{current: current, new: new})
 
@@ -184,5 +213,6 @@ defmodule Demo.Interface.User.PasswordResetTest do
     end
   end
 
-  defp errors(conn, field), do: changeset_errors(conn.assigns.changeset, field)
+  defp errors(conn, changeset_name \\ :changeset, field),
+    do: changeset_errors(conn.assigns[changeset_name], field)
 end
