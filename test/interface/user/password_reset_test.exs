@@ -51,7 +51,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
     test "form is rendered for a guest" do
       email = new_email()
       register!(email: email)
-      token = start_password_reset!(email)
+      token = ok!(start_password_reset(email))
 
       conn = get(build_conn(), "/reset_password/#{token}")
       response = html_response(conn, 200)
@@ -72,7 +72,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
     test "succeeds with a valid token" do
       registration_params = valid_registration_params()
       register!(registration_params)
-      token = start_password_reset!(registration_params.email)
+      token = ok!(start_password_reset(registration_params.email))
 
       new_password = new_password()
       assert {:ok, conn} = reset_password(token, new_password)
@@ -89,8 +89,8 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
       # confirm email token
       email = new_email()
-      confirm_email_token = start_registration!(email)
-      finish_registration!(confirm_email_token, new_password())
+      confirm_email_token = ok!(start_registration(email))
+      ok!(finish_registration(confirm_email_token, new_password()))
 
       assert {:error, conn} = reset_password(confirm_email_token, new_password())
       assert html_response(conn, 404)
@@ -98,7 +98,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
       # auth_token
       registration_params = valid_registration_params()
       register!(registration_params)
-      auth_token = login!(registration_params) |> Plug.Conn.get_session(:auth_token)
+      auth_token = login(registration_params) |> ok!() |> Plug.Conn.get_session(:auth_token)
 
       assert {:error, conn} = reset_password(auth_token, new_password())
       assert html_response(conn, 404)
@@ -107,9 +107,9 @@ defmodule Demo.Interface.User.PasswordResetTest do
     test "token can only be used once" do
       email = new_email()
       register!(email: email)
-      token = start_password_reset!(email)
+      token = ok!(start_password_reset(email))
 
-      reset_password!(token, new_password())
+      ok!(reset_password(token, new_password()))
 
       assert {:error, conn} = reset_password(token, new_password())
       assert html_response(conn, 404)
@@ -118,7 +118,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
     test "rejects invalid password" do
       email = new_email()
       register!(email: email)
-      token = start_password_reset!(email)
+      token = ok!(start_password_reset(email))
 
       assert {:error, conn} = reset_password(token, nil)
       assert "can't be blank" in errors(conn, :password)

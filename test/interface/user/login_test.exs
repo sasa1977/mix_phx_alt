@@ -21,7 +21,12 @@ defmodule Demo.Interface.User.LoginTest do
       params = valid_registration_params()
       register!(params)
 
-      conn = login!(Map.merge(params, %{remember: "true"})) |> recycle_no_session() |> get("/")
+      conn =
+        login(Map.merge(params, %{remember: "true"}))
+        |> ok!()
+        |> recycle_no_session()
+        |> get("/")
+
       assert html_response(conn, 200) =~ "Log out"
     end
 
@@ -29,7 +34,7 @@ defmodule Demo.Interface.User.LoginTest do
       params = valid_registration_params()
       register!(params)
 
-      conn = login!(Map.merge(params, %{remember: "true"}))
+      conn = ok!(login(Map.merge(params, %{remember: "true"})))
       update_last_token(hash: fragment("digest(gen_random_uuid()::text, 'sha256')::bytea"))
 
       conn = conn |> recycle_no_session() |> get("/")
@@ -40,7 +45,7 @@ defmodule Demo.Interface.User.LoginTest do
       params = valid_registration_params()
       register!(params)
 
-      conn = login!(Map.merge(params, %{remember: "true"}))
+      conn = ok!(login(Map.merge(params, %{remember: "true"})))
       update_last_token(type: :password_reset)
 
       conn = conn |> recycle_no_session() |> get("/")
@@ -51,7 +56,7 @@ defmodule Demo.Interface.User.LoginTest do
       params = valid_registration_params()
       register!(params)
 
-      conn = login!(Map.merge(params, %{remember: "true"}))
+      conn = ok!(login(Map.merge(params, %{remember: "true"})))
       expire_last_token()
 
       conn = conn |> recycle() |> delete_req_cookie("_demo_key") |> get("/")

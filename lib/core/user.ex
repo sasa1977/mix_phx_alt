@@ -103,7 +103,7 @@ defmodule Demo.Core.User do
 
   @spec logout(auth_token) :: :ok
   def logout(auth_token) do
-    Repo.delete_all(where(Token, hash: ^token_hash!(auth_token), type: :auth))
+    Repo.delete_all(where(Token, hash: ^ok!(token_hash(auth_token)), type: :auth))
     :ok
   end
 
@@ -235,16 +235,11 @@ defmodule Demo.Core.User do
     Repo.insert!(%Token{
       user_id: user && user.id,
       type: type,
-      hash: token_hash!(token),
+      hash: ok!(token_hash(token)),
       payload: payload
     })
 
     token
-  end
-
-  defp token_hash!(token) do
-    {:ok, hash} = token_hash(token)
-    hash
   end
 
   defp token_hash(token) do

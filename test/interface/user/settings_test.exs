@@ -37,11 +37,11 @@ defmodule Demo.Interface.User.SettingsTest do
       register!(params)
 
       # create other tokens
-      login!(params)
-      login!(Map.put(params, :remember, "true"))
-      start_password_reset!(params.email)
+      ok!(login(params))
+      ok!(login(Map.put(params, :remember, "true")))
+      ok!(start_password_reset(params.email))
 
-      change_password!(params.email, params.password, new_password())
+      ok!(change_password(params.email, params.password, new_password()))
 
       # there should be just one token (created during the password change)
       assert Demo.Core.Repo.aggregate(Demo.Core.Model.Token, :count) == 1
@@ -76,14 +76,9 @@ defmodule Demo.Interface.User.SettingsTest do
       assert "should be at most 72 characters" in errors(conn, :password_changeset, :new)
     end
 
-    defp change_password!(email, current, new) do
-      {:ok, conn} = change_password(email, current, new)
-      conn
-    end
-
     defp change_password(conn \\ nil, email, current, new) do
       conn =
-        (conn || login!(email: email, password: current))
+        (conn || ok!(login(email: email, password: current)))
         |> recycle()
         |> post("/change_password", password: %{current: current, new: new})
 

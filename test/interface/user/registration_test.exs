@@ -44,7 +44,7 @@ defmodule Demo.Interface.User.RegistrationTest do
 
   describe "finish registration" do
     test "form is rendered for a guest" do
-      token = start_registration!(new_email())
+      token = ok!(start_registration(new_email()))
       conn = get(build_conn(), "/finish_registration/#{token}")
       response = html_response(conn, 200)
       assert response =~ ~s/<input id="user_password" name="user[password]/
@@ -62,13 +62,13 @@ defmodule Demo.Interface.User.RegistrationTest do
     end
 
     test "succeeds with valid data" do
-      token = start_registration!(new_email())
+      token = ok!(start_registration(new_email()))
       assert {:ok, conn} = finish_registration(token, new_password())
       assert conn.request_path == Routes.user_path(conn, :welcome)
     end
 
     test "rejects invalid password" do
-      token = start_registration!(new_email())
+      token = ok!(start_registration(new_email()))
 
       assert {:error, conn} = finish_registration(token, nil)
       assert "can't be blank" in errors(conn, :password)
@@ -89,14 +89,14 @@ defmodule Demo.Interface.User.RegistrationTest do
       assert html_response(conn, 404)
 
       # token of a wrong type
-      token = start_registration!(new_email())
+      token = ok!(start_registration(new_email()))
       update_last_token(type: :auth)
 
       assert {:error, conn} = finish_registration(token, new_password())
       assert html_response(conn, 404)
 
       # expired token
-      token = start_registration!(new_email())
+      token = ok!(start_registration(new_email()))
       expire_last_token()
 
       assert {:error, conn} = finish_registration(token, new_password())
@@ -106,10 +106,10 @@ defmodule Demo.Interface.User.RegistrationTest do
     test "fails if the user is already activated" do
       email = new_email()
 
-      token1 = start_registration!(email)
-      token2 = start_registration!(email)
+      token1 = ok!(start_registration(email))
+      token2 = ok!(start_registration(email))
 
-      finish_registration!(token1, new_password())
+      ok!(finish_registration(token1, new_password()))
 
       assert {:error, conn} = finish_registration(token2, new_password())
       assert html_response(conn, 404)
@@ -118,8 +118,8 @@ defmodule Demo.Interface.User.RegistrationTest do
     test "token can only be used once" do
       params = valid_registration_params()
 
-      token = start_registration!(params.email)
-      finish_registration!(token, params.password)
+      token = ok!(start_registration(params.email))
+      ok!(finish_registration(token, params.password))
 
       assert {:error, conn} = finish_registration(token, params.password)
       assert html_response(conn, 404)

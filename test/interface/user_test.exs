@@ -34,7 +34,7 @@ defmodule Demo.Interface.UserTest do
     registration_params = valid_registration_params()
     register!(registration_params)
 
-    logged_in_conn = login!(Map.put(registration_params, :remember, "true"))
+    logged_in_conn = ok!(login(Map.put(registration_params, :remember, "true")))
     logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
 
     assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :login_form)
@@ -47,14 +47,14 @@ defmodule Demo.Interface.UserTest do
   end
 
   test "periodic token cleanup deletes expired tokens" do
-    start_registration!(new_email())
+    ok!(start_registration(new_email()))
     expire_last_token()
 
     register!()
     expire_last_token()
 
     conn1 = register!()
-    token1 = start_registration!(new_email())
+    token1 = ok!(start_registration(new_email()))
 
     Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.User.TokenCleanup)
     {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.User.TokenCleanup)

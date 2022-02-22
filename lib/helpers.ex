@@ -20,4 +20,7 @@ defmodule Demo.Helpers do
   @spec transfer_changeset_errors(Ecto.Changeset.t(), Ecto.Changeset.t()) :: Ecto.Changeset.t()
   def transfer_changeset_errors(%Ecto.Changeset{valid?: false} = from, to),
     do: %Ecto.Changeset{to | errors: from.errors, valid?: false}
+
+  @spec ok!({:ok, result}) :: result when result: var
+  def ok!({:ok, result}), do: result
 end
