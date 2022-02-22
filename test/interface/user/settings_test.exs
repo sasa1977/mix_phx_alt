@@ -90,14 +90,42 @@ defmodule Demo.Interface.User.SettingsTest do
     end
   end
 
-  describe "start email change" do
+  describe "email change" do
     test "succeeds with valid params" do
       params = valid_registration_params()
       register!(params)
-      assert {:ok, _token} = start_email_change(params, new_email())
+
+      new_email = new_email()
+
+      assert {:ok, token} = start_email_change(params, new_email)
+      assert {:ok, conn} = change_email(token)
+
+      assert logged_in?(conn)
+      assert conn.resp_body =~ "Email changed successfully"
+
+      assert {:ok, _} = login(%{params | email: new_email})
+      assert {:error, _} = login(params)
     end
 
-    test "allows different users to attempt a change to the same email" do
+    test "deletes all other tokens" do
+      params = valid_registration_params()
+      register!(params)
+
+      # create other tokens
+      ok!(login(params))
+      ok!(login(Map.put(params, :remember, "true")))
+      ok!(start_password_reset(params.email))
+
+      start_email_change(params, new_email())
+      |> ok!()
+      |> change_email()
+      |> ok!()
+
+      # there should be just one token (created during the password change)
+      assert Demo.Core.Repo.aggregate(Demo.Core.Model.Token, :count) == 1
+    end
+
+    test "when different users try to acquire the same email" do
       params1 = valid_registration_params()
       register!(params1)
 
@@ -106,8 +134,11 @@ defmodule Demo.Interface.User.SettingsTest do
 
       new_email = new_email()
 
-      assert {:ok, _token} = start_email_change(params1, new_email)
-      assert {:ok, _token} = start_email_change(params2, new_email)
+      assert {:ok, token1} = start_email_change(params1, new_email)
+      assert {:ok, token2} = start_email_change(params2, new_email)
+
+      assert {:ok, _} = change_email(token1)
+      assert {:error, _} = change_email(token2)
     end
 
     test "doesn't send an email if the account already exists" do
@@ -143,6 +174,29 @@ defmodule Demo.Interface.User.SettingsTest do
       assert "is the same" in errors(conn, :email_changeset, :email)
     end
 
+    test "fails if the password is invalid" do
+      params = valid_registration_params()
+      register!(params)
+
+      conn =
+        ok!(login(params))
+        |> recycle()
+        |> post("/start_email_change", change_email: %{email: new_email(), password: "invalid"})
+
+      assert "is invalid" in errors(conn, :email_changeset, :password)
+    end
+
+    test "fails for invalid token" do
+      # malformed token
+      assert {:error, conn} = change_email("invalid_token")
+      assert html_response(conn, 404)
+
+      # auth_token
+      auth_token = register!() |> Plug.Conn.get_session(:auth_token)
+      assert {:error, conn} = change_email(auth_token)
+      assert html_response(conn, 404)
+    end
+
     defp start_email_change(login_params, new_email) do
       conn =
         ok!(login(login_params))
@@ -166,6 +220,16 @@ defmodule Demo.Interface.User.SettingsTest do
           |> Map.fetch!("token")
       after
         0 -> nil
+      end
+    end
+
+    defp change_email(token) do
+      conn = get(build_conn(), "/change_email/#{token}")
+
+      with :ok <- validate(conn.status == 302, conn) do
+        conn = conn |> recycle() |> get(redirected_to(conn))
+        200 = conn.status
+        {:ok, conn}
       end
     end
   end
