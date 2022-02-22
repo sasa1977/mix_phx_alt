@@ -1,6 +1,7 @@
 defmodule Demo.Core.User do
   import Demo.Helpers
 
+  import Demo.Helpers
   import Ecto.Changeset
   import Ecto.Query
 
@@ -102,7 +103,7 @@ defmodule Demo.Core.User do
 
   @spec logout(auth_token) :: :ok
   def logout(auth_token) do
-    Repo.delete_all(where(Token, hash: ^token_hash!(auth_token), type: :auth))
+    Repo.delete_all(where(Token, hash: ^ok!(token_hash(auth_token)), type: :auth))
     :ok
   end
 
@@ -142,6 +143,48 @@ defmodule Demo.Core.User do
     end)
   end
 
+  @spec change_password(User.t(), String.t(), String.t()) ::
+          {:ok, auth_token} | {:error, Ecto.Changeset.t()}
+  def change_password(user, current, new) do
+    with {:ok, new_password_hash} <- validate_password_change(user, current, new),
+         {:ok, user} <- safe_update_password_hash(user, new_password_hash) do
+      # Since the password has been changed, we'll delete all other user's tokens. We're
+      # deliberately doing this outside of the transaction to make sure that login attempts with
+      # the old password won't succeed (since the hash update has been comitted at this point).
+      Repo.delete_all(where(Token, user_id: ^user.id))
+      {:ok, create_token!(user, :auth)}
+    end
+  end
+
+  defp validate_password_change(user, current, new) do
+    changeset = change_password_hash(user, new, field_name: :new)
+
+    changeset =
+      if Bcrypt.verify_pass(current, user.password_hash),
+        do: changeset,
+        else: add_error(changeset, :current, "is not valid")
+
+    case apply_action(changeset, :update) do
+      {:ok, user} -> {:ok, user.password_hash}
+      {:error, changeset} -> {:error, transfer_changeset_errors(changeset, empty_changeset())}
+    end
+  end
+
+  defp safe_update_password_hash(user, new_password_hash) do
+    # Using update_all and filtering by password hash to make sure that the password hasn't
+    # been changed after the user has been loaded from the database.
+    case Repo.update_all(
+           from(user in User,
+             where: [id: ^user.id, password_hash: ^user.password_hash],
+             select: user
+           ),
+           set: [password_hash: new_password_hash]
+         ) do
+      {1, [user]} -> {:ok, user}
+      {0, _} -> {:error, add_error(empty_changeset(), :current, "is not valid")}
+    end
+  end
+
   @spec validate_token(String.t(), Token.type()) :: :ok | :error
   def validate_token(token, type) do
     with {:ok, hash} <- token_hash(token),
@@ -169,7 +212,8 @@ defmodule Demo.Core.User do
          do: :ok
   end
 
-  defp change_password_hash(user_or_changeset, password) do
+  defp change_password_hash(user_or_changeset, password, opts \\ []) do
+    field_name = Keyword.get(opts, :field_name, :password)
     changeset = change(user_or_changeset)
 
     with :ok <- validate(is_bitstring(password) and password != "", "can't be blank"),
@@ -179,7 +223,7 @@ defmodule Demo.Core.User do
          :ok <- validate(length >= min_length, "should be at least #{min_length} characters"),
          :ok <- validate(length <= max_length, "should be at most #{max_length} characters"),
          do: change(changeset, password_hash: Bcrypt.hash_pwd_salt(password)),
-         else: ({:error, reason} -> changeset |> add_error(:password, reason))
+         else: ({:error, reason} -> changeset |> add_error(field_name, reason))
   end
 
   defp create_token!(user, type, payload \\ %{}) do
@@ -191,16 +235,11 @@ defmodule Demo.Core.User do
     Repo.insert!(%Token{
       user_id: user && user.id,
       type: type,
-      hash: token_hash!(token),
+      hash: ok!(token_hash(token)),
       payload: payload
     })
 
     token
-  end
-
-  defp token_hash!(token) do
-    {:ok, hash} = token_hash(token)
-    hash
   end
 
   defp token_hash(token) do

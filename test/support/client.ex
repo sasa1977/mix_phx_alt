@@ -23,15 +23,10 @@ defmodule Demo.Test.Client do
   def register!(params \\ %{}) do
     params = Map.merge(valid_registration_params(), Map.new(params))
 
-    start_registration!(params.email)
-    |> finish_registration!(params.password)
-  end
-
-  @spec start_registration!(String.t()) :: User.confirm_email_token()
-  def start_registration!(email) do
-    {:ok, token} = start_registration(email)
-    false = is_nil(token)
-    token
+    start_registration(params.email)
+    |> ok!()
+    |> finish_registration(params.password)
+    |> ok!()
   end
 
   @spec start_registration(String.t()) ::
@@ -56,12 +51,6 @@ defmodule Demo.Test.Client do
     end
   end
 
-  @spec finish_registration!(User.confirm_email_token(), String.t()) :: Plug.Conn.t()
-  def finish_registration!(token, password) do
-    {:ok, conn} = finish_registration(token, password)
-    conn
-  end
-
   @spec finish_registration(User.confirm_email_token(), String.t()) ::
           {:ok | :error, Plug.Conn.t()}
   def finish_registration(token, password) do
@@ -83,12 +72,6 @@ defmodule Demo.Test.Client do
   @spec new_password :: String.t()
   def new_password, do: unique("12345678901")
 
-  @spec login!(Keyword.t() | map) :: Plug.Conn.t()
-  def login!(params) do
-    {:ok, conn} = login(params)
-    conn
-  end
-
   @spec login(Keyword.t() | map) :: {:ok | :error, Plug.Conn.t()}
   def login(params) do
     params = Map.merge(%{remember: "false"}, Map.new(params))
@@ -104,13 +87,6 @@ defmodule Demo.Test.Client do
       200 = conn.status
       {:ok, conn}
     end
-  end
-
-  @spec start_password_reset!(String.t()) :: User.password_reset_token()
-  def start_password_reset!(email) do
-    {:ok, token} = start_password_reset(email)
-    false = is_nil(token)
-    token
   end
 
   @spec start_password_reset(String.t()) ::
@@ -133,12 +109,6 @@ defmodule Demo.Test.Client do
     after
       0 -> nil
     end
-  end
-
-  @spec reset_password!(User.password_reset_token(), String.t()) :: Plug.Conn.t()
-  def reset_password!(token, password) do
-    {:ok, conn} = reset_password(token, password)
-    conn
   end
 
   @spec reset_password(User.password_reset_token(), String.t()) :: {:ok | :error, Plug.Conn.t()}
