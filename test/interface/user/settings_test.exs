@@ -54,7 +54,7 @@ defmodule Demo.Interface.User.SettingsTest do
       %{email: email, password: password} = params
 
       assert {:error, conn} = change_password(conn, email, "_#{password}", new_password())
-      assert "is not valid" in errors(conn, :password_changeset, :current)
+      assert "is invalid" in errors(conn, :password_changeset, :current)
     end
 
     test "rejects invalid new password" do

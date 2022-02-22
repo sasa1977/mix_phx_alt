@@ -32,7 +32,11 @@ defmodule Demo.Core.User do
   @spec start_registration(String.t(), url_builder(confirm_email_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email, url_fun) do
-    with :ok <- validate_email(email) do
+    with {:ok, _} <-
+           changeset(email: :string)
+           |> change(email: email)
+           |> validate_email()
+           |> apply_action(:insert) do
       create_email_confirm_token(
         email,
         "Registration",
@@ -48,10 +52,13 @@ defmodule Demo.Core.User do
   @spec start_email_change(User.t(), String.t(), String.t(), url_builder(confirm_email_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_email_change(user, email, password, url_fun) do
-    with :ok <- validate_email(email),
-         :ok <-
-           validate(email != user.email, add_error(empty_changeset(), :email, "is the same")),
-         :ok <- validate_current_password(user, password, :password) do
+    with {:ok, _} <-
+           changeset(email: :string, password: :string)
+           |> change(email: email, password: password)
+           |> validate_email()
+           |> validate_field(:email, &(&1 != user.email), "is the same")
+           |> validate_field(:password, &password_ok?(user, &1), "is invalid")
+           |> apply_action(:update) do
       create_email_confirm_token(
         user,
         email,
@@ -113,12 +120,7 @@ defmodule Demo.Core.User do
   def login(email, password) do
     user = Repo.get_by(User, email: email)
 
-    password_valid? =
-      if user != nil,
-        do: Bcrypt.verify_pass(password, user.password_hash),
-        else: Bcrypt.no_user_verify()
-
-    if password_valid?,
+    if password_ok?(user, password),
       do: {:ok, create_token!(user, :auth)},
       else: :error
   end
@@ -140,7 +142,11 @@ defmodule Demo.Core.User do
   @spec start_password_reset(String.t(), url_builder(password_reset_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_password_reset(email, url_fun) do
-    with :ok <- validate_email(email) do
+    with {:ok, _} <-
+           changeset(email: :string)
+           |> change(email: email)
+           |> validate_email()
+           |> apply_action(:update) do
       if user = Repo.one(User, email: email) do
         token = create_token!(user, :password_reset)
 
@@ -172,8 +178,12 @@ defmodule Demo.Core.User do
   @spec change_password(User.t(), String.t(), String.t()) ::
           {:ok, auth_token} | {:error, Ecto.Changeset.t()}
   def change_password(user, current, new) do
-    with :ok <- validate_current_password(user, current, :current),
-         {:ok, new_password_hash} <- validate_password_change(user, new),
+    with {:ok, %{password_hash: new_password_hash}} <-
+           changeset(password_hash: :binary, current: :string)
+           |> change(current: current)
+           |> validate_field(:current, &password_ok?(user, &1), "is invalid")
+           |> change_password_hash(new, field_name: :new)
+           |> apply_action(:update),
          {:ok, user} <- safe_update_password_hash(user, new_password_hash) do
       # Since the password has been changed, we'll delete all other user's tokens. We're
       # deliberately doing this outside of the transaction to make sure that login attempts with
@@ -183,20 +193,10 @@ defmodule Demo.Core.User do
     end
   end
 
-  defp validate_password_change(user, new) do
-    changeset = change_password_hash(user, new, field_name: :new)
-
-    case apply_action(changeset, :update) do
-      {:ok, user} -> {:ok, user.password_hash}
-      {:error, changeset} -> {:error, transfer_changeset_errors(changeset, empty_changeset())}
-    end
-  end
-
-  defp validate_current_password(user, password, field_name) do
-    validate(
-      Bcrypt.verify_pass(password, user.password_hash),
-      add_error(empty_changeset(), field_name, "is not valid")
-    )
+  defp password_ok?(user, password) do
+    if user != nil,
+      do: Bcrypt.verify_pass(password, user.password_hash),
+      else: Bcrypt.no_user_verify()
   end
 
   defp safe_update_password_hash(user, new_password_hash) do
@@ -209,8 +209,13 @@ defmodule Demo.Core.User do
            ),
            set: [password_hash: new_password_hash]
          ) do
-      {1, [user]} -> {:ok, user}
-      {0, _} -> {:error, add_error(empty_changeset(), :current, "is not valid")}
+      {1, [user]} ->
+        {:ok, user}
+
+      {0, _} ->
+        changeset(current: :string)
+        |> add_error(:current, "is not valid")
+        |> apply_action(:update)
     end
   end
 
@@ -220,17 +225,11 @@ defmodule Demo.Core.User do
          do: validate(Repo.exists?(valid_tokens_query(), hash: hash, type: type))
   end
 
-  defp validate_email(email) do
-    with {:ok, _} <-
-           %User{}
-           |> change(email: email)
-           |> validate_required([:email])
-           |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/,
-             message: "must have the @ sign and no spaces"
-           )
-           |> validate_length(:email, max: 160)
-           |> apply_action(:insert),
-         do: :ok
+  defp validate_email(changeset) do
+    changeset
+    |> validate_required([:email])
+    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
+    |> validate_length(:email, max: 160)
   end
 
   defp change_password_hash(user_or_changeset, password, opts \\ []) do

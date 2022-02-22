@@ -15,11 +15,18 @@ defmodule Demo.Helpers do
   def mix_env, do: Application.fetch_env!(:demo, :mix_env)
 
   @spec empty_changeset :: Ecto.Changeset.t()
-  def empty_changeset, do: Ecto.Changeset.change({%{}, %{}})
+  def empty_changeset, do: changeset([])
 
-  @spec transfer_changeset_errors(Ecto.Changeset.t(), Ecto.Changeset.t()) :: Ecto.Changeset.t()
-  def transfer_changeset_errors(%Ecto.Changeset{valid?: false} = from, to),
-    do: %Ecto.Changeset{to | errors: from.errors, valid?: false}
+  @spec changeset(map, map | Keyword.t()) :: Ecto.Changeset.t()
+  def changeset(data \\ %{}, types), do: Ecto.Changeset.change({data, Map.new(types)})
+
+  @spec validate_field(Ecto.Changeset.t(), atom, (any -> boolean), String.t()) ::
+          Ecto.Changeset.t()
+  def validate_field(changeset, field, validator, error) do
+    if validator.(Ecto.Changeset.get_field(changeset, field)),
+      do: changeset,
+      else: Ecto.Changeset.add_error(changeset, field, error)
+  end
 
   @spec ok!({:ok, result}) :: result when result: var
   def ok!({:ok, result}), do: result
