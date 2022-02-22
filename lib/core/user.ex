@@ -69,11 +69,18 @@ defmodule Demo.Core.User do
     Repo.transact(fn ->
       with {:ok, token} <- spend_token(token, :confirm_email),
            :ok <- validate(token.user == nil),
-           {:ok, user} <- store_user(Map.fetch!(token.payload, "email"), password),
+           {:ok, user} <-
+             %User{}
+             |> change_email(Map.fetch!(token.payload, "email"))
+             |> change_password_hash(password)
+             |> Repo.insert(),
            do: {:ok, create_token!(user, :auth)}
     end)
     |> anonymize_email_exists_error()
   end
+
+  defp change_email(user, email),
+    do: user |> change(email: email) |> unique_constraint(:email)
 
   defp anonymize_email_exists_error(outcome) do
     with {:error, %Ecto.Changeset{errors: errors}} <- outcome,
@@ -188,14 +195,6 @@ defmodule Demo.Core.User do
   def validate_token(token, type) do
     with {:ok, hash} <- token_hash(token),
          do: validate(Repo.exists?(valid_tokens_query(), hash: hash, type: type))
-  end
-
-  defp store_user(email, password) do
-    %User{}
-    |> change(email: email)
-    |> change_password_hash(password)
-    |> unique_constraint(:email)
-    |> Repo.insert()
   end
 
   defp validate_email(email) do
