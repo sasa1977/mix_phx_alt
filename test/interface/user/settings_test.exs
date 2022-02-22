@@ -90,6 +90,63 @@ defmodule Demo.Interface.User.SettingsTest do
     end
   end
 
+  describe "start email change" do
+    test "succeeds with valid params" do
+      params = valid_registration_params()
+      register!(params)
+      assert {:ok, _token} = start_email_change(params, new_email())
+    end
+
+    test "allows different users to attempt a change to the same email" do
+      params1 = valid_registration_params()
+      register!(params1)
+
+      params2 = valid_registration_params()
+      register!(params2)
+
+      new_email = new_email()
+
+      assert {:ok, _token} = start_email_change(params1, new_email)
+      assert {:ok, _token} = start_email_change(params2, new_email)
+    end
+
+    test "doesn't send an email if the account already exists" do
+      params1 = valid_registration_params()
+      register!(params1)
+
+      params2 = valid_registration_params()
+      register!(params2)
+
+      assert {:ok, nil} = start_email_change(params1, params2.email)
+    end
+
+    defp start_email_change(login_params, new_email) do
+      conn =
+        ok!(login(login_params))
+        |> recycle()
+        |> post("/start_email_change",
+          change_email: %{email: new_email, password: login_params.password}
+        )
+
+      200 = conn.status
+
+      if conn.resp_body =~ "The email with further instructions has been sent to #{new_email}",
+        do: {:ok, confirm_email_token(new_email)},
+        else: {:error, conn}
+    end
+
+    defp confirm_email_token(email) do
+      receive do
+        {:email, %{to: [{nil, ^email}], subject: "Confirm email change"} = registration_email} ->
+          ~r[http://.*/change_email/(?<token>.*)]
+          |> Regex.named_captures(registration_email.text_body)
+          |> Map.fetch!("token")
+      after
+        0 -> nil
+      end
+    end
+  end
+
   defp errors(conn, changeset_name, field),
     do: changeset_errors(conn.assigns[changeset_name], field)
 end

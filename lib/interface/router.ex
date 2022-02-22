@@ -49,6 +49,8 @@ defmodule Demo.Interface.Router do
 
     get "/settings", User.Controller, :settings, as: :user
     post "/change_password", User.Controller, :change_password, as: :user
+
+    post "/start_email_change", User.Controller, :start_email_change, as: :user
   end
 
   if Mix.env() in [:dev, :test] do

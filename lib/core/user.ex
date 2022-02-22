@@ -45,6 +45,26 @@ defmodule Demo.Core.User do
     end
   end
 
+  @spec start_email_change(User.t(), String.t(), String.t(), url_builder(confirm_email_token)) ::
+          :ok | {:error, Ecto.Changeset.t()}
+  def start_email_change(user, email, password, url_fun) do
+    with :ok <- validate_email(email),
+         :ok <-
+           validate(email != user.email, add_error(empty_changeset(), :email, "is the same")),
+         :ok <- validate_current_password(user, password, :password) do
+      create_email_confirm_token(
+        user,
+        email,
+        "Confirm email change",
+        &"To use this email address click the following url:\n#{url_fun.(&1)}"
+      )
+
+      # To avoid enumeration attacks this function always succeeds if email is valid.
+      # See `create_email_confirm_token` for details.
+      :ok
+    end
+  end
+
   defp create_email_confirm_token(user \\ nil, email, subject, body_fun) do
     # We'll only generate the token and send an e-mail if the user doesn't exist to avoid
     # spamming registered users with unwanted mails. However, to prevent enumeration attacks,
@@ -152,7 +172,8 @@ defmodule Demo.Core.User do
   @spec change_password(User.t(), String.t(), String.t()) ::
           {:ok, auth_token} | {:error, Ecto.Changeset.t()}
   def change_password(user, current, new) do
-    with {:ok, new_password_hash} <- validate_password_change(user, current, new),
+    with :ok <- validate_current_password(user, current, :current),
+         {:ok, new_password_hash} <- validate_password_change(user, new),
          {:ok, user} <- safe_update_password_hash(user, new_password_hash) do
       # Since the password has been changed, we'll delete all other user's tokens. We're
       # deliberately doing this outside of the transaction to make sure that login attempts with
@@ -162,18 +183,20 @@ defmodule Demo.Core.User do
     end
   end
 
-  defp validate_password_change(user, current, new) do
+  defp validate_password_change(user, new) do
     changeset = change_password_hash(user, new, field_name: :new)
-
-    changeset =
-      if Bcrypt.verify_pass(current, user.password_hash),
-        do: changeset,
-        else: add_error(changeset, :current, "is not valid")
 
     case apply_action(changeset, :update) do
       {:ok, user} -> {:ok, user.password_hash}
       {:error, changeset} -> {:error, transfer_changeset_errors(changeset, empty_changeset())}
     end
+  end
+
+  defp validate_current_password(user, password, field_name) do
+    validate(
+      Bcrypt.verify_pass(password, user.password_hash),
+      add_error(empty_changeset(), field_name, "is not valid")
+    )
   end
 
   defp safe_update_password_hash(user, new_password_hash) do
