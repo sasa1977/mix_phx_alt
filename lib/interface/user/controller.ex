@@ -73,7 +73,7 @@ defmodule Demo.Interface.User.Controller do
   end
 
   # ------------------------------------------------------------------------
-  # Password change and reset
+  # Settings
   # ------------------------------------------------------------------------
 
   def settings(conn, _params) do
@@ -95,6 +95,10 @@ defmodule Demo.Interface.User.Controller do
         render(conn, :settings, password_changeset: changeset)
     end
   end
+
+  # ------------------------------------------------------------------------
+  # Password reset
+  # ------------------------------------------------------------------------
 
   def start_password_reset_form(conn, _params),
     do: render(conn, :start_password_reset, changeset: user_changeset())
