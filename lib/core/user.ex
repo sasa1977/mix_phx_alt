@@ -65,15 +65,12 @@ defmodule Demo.Core.User do
   """
   @spec finish_registration(confirm_email_token, String.t()) ::
           {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
-  def finish_registration(confirm_email_token, password) do
+  def finish_registration(token, password) do
     Repo.transact(fn ->
-      with {:ok, token} <- fetch_token(confirm_email_token, :confirm_email),
-           :ok <- validate(token != nil),
-           {:ok, user} <- store_user(Map.fetch!(token.payload, "email"), password) do
-        # confirm_email is a one-time token, so we're deleting it now
-        Repo.delete(token)
-        {:ok, create_token!(user, :auth)}
-      end
+      with {:ok, token} <- spend_token(token, :confirm_email),
+           :ok <- validate(token.user == nil),
+           {:ok, user} <- store_user(Map.fetch!(token.payload, "email"), password),
+           do: {:ok, create_token!(user, :auth)}
     end)
     |> anonymize_email_exists_error()
   end
@@ -102,7 +99,7 @@ defmodule Demo.Core.User do
   @spec authenticate(auth_token) :: User.t() | nil
   def authenticate(auth_token) do
     case fetch_token(auth_token, :auth) do
-      {:ok, token} -> Repo.one!(Ecto.assoc(token, :user))
+      {:ok, token} -> token.user
       :error -> nil
     end
   end
@@ -137,11 +134,7 @@ defmodule Demo.Core.User do
   def reset_password(token, password) do
     Repo.transact(fn ->
       with {:ok, token} <- fetch_token(token, :password_reset),
-           :ok <- validate(token != nil),
-           {:ok, user} <-
-             Repo.one!(Ecto.assoc(token, :user))
-             |> change_password_hash(password)
-             |> Repo.update() do
+           {:ok, user} <- token.user |> change_password_hash(password) |> Repo.update() do
         # delete the token so it can't be used again
         Repo.delete(token)
         {:ok, create_token!(user, :auth)}
@@ -253,9 +246,14 @@ defmodule Demo.Core.User do
          do: {:ok, :crypto.hash(:sha256, token_bytes)}
   end
 
+  defp spend_token(token, type) do
+    fetch_token(token, type)
+    |> tap(&with {:ok, token} <- &1, do: Repo.delete(token))
+  end
+
   defp fetch_token(token, type) do
     with {:ok, token_hash} <- token_hash(token),
-         token = Repo.get_by(valid_tokens_query(), hash: token_hash, type: type),
+         token = Repo.get_by(preload(valid_tokens_query(), :user), hash: token_hash, type: type),
          :ok <- validate(token != nil),
          do: {:ok, token}
   end
