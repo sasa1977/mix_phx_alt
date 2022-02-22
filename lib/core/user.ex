@@ -33,20 +33,25 @@ defmodule Demo.Core.User do
           :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email, url_fun) do
     with :ok <- validate_email(email) do
-      # We'll only generate the token and send an e-mail if the user doesn't exist. This avoid
-      # spamming registered users with unwanted mails. However, to prevent enumeration attacks,
-      # this operation will always succeed, even if the email has been taken.
-      unless Repo.exists?(where(User, email: ^email)) do
-        token = create_token!(nil, :confirm_email, %{email: email})
+      create_email_confirm_token(
+        email,
+        "Registration",
+        &"To create the account visit #{url_fun.(&1)}"
+      )
 
-        Demo.Core.Mailer.send(
-          email,
-          "Registration",
-          "To create the account visit #{url_fun.(token)}"
-        )
-      end
-
+      # To avoid enumeration attacks this function always succeeds if email is valid.
+      # See `create_email_confirm_token` for details.
       :ok
+    end
+  end
+
+  defp create_email_confirm_token(user \\ nil, email, subject, body_fun) do
+    # We'll only generate the token and send an e-mail if the user doesn't exist to avoid
+    # spamming registered users with unwanted mails. However, to prevent enumeration attacks,
+    # this operation will always succeed, even if the email has been taken.
+    unless Repo.exists?(where(User, email: ^email)) do
+      token = create_token!(user, :confirm_email, %{email: email})
+      Demo.Core.Mailer.send(email, subject, body_fun.(token))
     end
   end
 
@@ -70,13 +75,14 @@ defmodule Demo.Core.User do
         {:ok, create_token!(user, :auth)}
       end
     end)
-    |> then(
-      # convert "email has already been taken" into a generic error, because the user can't do anything at this point
-      &with {:error, %Ecto.Changeset{errors: errors}} <- &1,
-            {"has already been taken", _} <- Keyword.get(errors, :email),
-            do: :error,
-            else: (_ -> &1)
-    )
+    |> anonymize_email_exists_error()
+  end
+
+  defp anonymize_email_exists_error(outcome) do
+    with {:error, %Ecto.Changeset{errors: errors}} <- outcome,
+         {"has already been taken", _} <- Keyword.get(errors, :email),
+         do: :error,
+         else: (_ -> outcome)
   end
 
   @spec login(String.t(), String.t()) :: {:ok, auth_token} | :error
