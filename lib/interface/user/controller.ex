@@ -78,8 +78,7 @@ defmodule Demo.Interface.User.Controller do
   # Settings
   # ------------------------------------------------------------------------
 
-  def settings(conn, _params),
-    do: render(conn, :settings, password_changeset: empty_changeset())
+  def settings(conn, _params), do: render_form(conn)
 
   def change_password(conn, %{"password" => password}) do
     %{"current" => current, "new" => new} = password
@@ -91,7 +90,7 @@ defmodule Demo.Interface.User.Controller do
         |> on_authenticated(auth_token)
 
       {:error, changeset} ->
-        render(conn, :settings, password_changeset: changeset)
+        render_form(conn, password_changeset: changeset)
     end
   end
 
@@ -103,8 +102,13 @@ defmodule Demo.Interface.User.Controller do
            &"http://localhost:4000/change_email/#{&1}"
          ) do
       :ok -> render(conn, :instructions_sent, email: email)
-      {:error, _changeset} -> {:error, 400}
+      {:error, changeset} -> render_form(conn, email_changeset: changeset)
     end
+  end
+
+  defp render_form(conn, assigns \\ []) do
+    default_assigns = [password_changeset: empty_changeset(), email_changeset: empty_changeset()]
+    render(conn, :settings, Keyword.merge(default_assigns, assigns))
   end
 
   # ------------------------------------------------------------------------

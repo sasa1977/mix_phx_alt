@@ -120,6 +120,29 @@ defmodule Demo.Interface.User.SettingsTest do
       assert {:ok, nil} = start_email_change(params1, params2.email)
     end
 
+    test "rejects invalid email" do
+      params = valid_registration_params()
+      register!(params)
+
+      assert {:error, conn} = start_email_change(params, nil)
+      assert "can't be blank" in errors(conn, :email_changeset, :email)
+
+      assert {:error, conn} = start_email_change(params, "")
+      assert "can't be blank" in errors(conn, :email_changeset, :email)
+
+      assert {:error, conn} = start_email_change(params, "foo bar")
+      assert "must have the @ sign and no spaces" in errors(conn, :email_changeset, :email)
+
+      assert {:error, conn} = start_email_change(params, "foo@ba r")
+      assert "must have the @ sign and no spaces" in errors(conn, :email_changeset, :email)
+
+      assert {:error, conn} = start_email_change(params, "a@b.c" <> String.duplicate("1", 160))
+      assert "should be at most 160 character(s)" in errors(conn, :email_changeset, :email)
+
+      assert {:error, conn} = start_email_change(params, params.email)
+      assert "is the same" in errors(conn, :email_changeset, :email)
+    end
+
     defp start_email_change(login_params, new_email) do
       conn =
         ok!(login(login_params))
