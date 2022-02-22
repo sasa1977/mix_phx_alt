@@ -1,8 +1,10 @@
-defmodule Demo.Interface.User.LoginTest do
+defmodule Demo.Interface.User.AuthenticationTest do
   use Demo.Test.ConnCase, async: true
 
   import Demo.Test.Client
   import Ecto.Query
+
+  alias Demo.Core.{Model, Repo}
 
   describe "login" do
     test "succeeds with valid parameters" do
@@ -78,6 +80,42 @@ defmodule Demo.Interface.User.LoginTest do
       assert {:error, conn} = login(params)
       assert conn.resp_body =~ "Invalid email or password"
     end
+  end
+
+  test "logout clears the current user" do
+    registration_params = valid_registration_params()
+    register!(registration_params)
+
+    logged_in_conn = ok!(login(Map.put(registration_params, :remember, "true")))
+    logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
+
+    assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :login_form)
+
+    assert get_session(logged_out_conn) == %{}
+    assert is_nil(logged_out_conn.assigns.current_user)
+    assert logged_out_conn.resp_cookies["auth_token"].max_age == 0
+
+    refute logged_in?(logged_in_conn)
+  end
+
+  test "periodic token cleanup deletes expired tokens" do
+    ok!(start_registration(new_email()))
+    expire_last_token()
+
+    register!()
+    expire_last_token()
+
+    conn1 = register!()
+    token1 = ok!(start_registration(new_email()))
+
+    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.User.TokenCleanup)
+    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.User.TokenCleanup)
+
+    assert Repo.aggregate(Model.Token, :count) == 2
+
+    # this proves that survived tokens are still working
+    assert logged_in?(conn1)
+    assert {:ok, _} = finish_registration(token1, valid_registration_params().password)
   end
 
   defp recycle_no_session(conn), do: conn |> recycle() |> delete_req_cookie("_demo_key")
