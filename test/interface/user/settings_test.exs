@@ -3,6 +3,19 @@ defmodule Demo.Interface.User.SettingsTest do
 
   import Demo.Test.Client
 
+  describe "settings form" do
+    test "is rendered if the user is authenticated" do
+      conn = register!() |> recycle() |> get("/settings")
+      response = html_response(conn, 200)
+      assert response =~ ~s/<input id="password_new" name="password[new]/
+    end
+
+    test "redirects an anonymous user" do
+      conn = get(build_conn(), "/settings")
+      assert redirected_to(conn) == Routes.user_path(conn, :login)
+    end
+  end
+
   describe "change password" do
     test "succeeds with valid parameters" do
       params = valid_registration_params()
