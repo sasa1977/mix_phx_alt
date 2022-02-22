@@ -49,6 +49,30 @@ defmodule Demo.Core.User do
     end
   end
 
+  @doc """
+  Finishes the registration process.
+
+  On success, this function creates the user entry and returns the auth token that can be used with
+  `authenticate/1`. If the token is invalid or expired, or if the email has been taken, the
+  function returns `:error`. We don't make distinctions between these scenarios to avoid leaking
+  emails.
+  """
+  @spec finish_registration(confirm_email_token, String.t()) ::
+          {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
+  def finish_registration(token, password) do
+    Repo.transact(fn ->
+      with {:ok, token} <- spend_token(token, :confirm_email),
+           :ok <- validate(token.user == nil),
+           {:ok, user} <-
+             %User{}
+             |> change_email(Map.fetch!(token.payload, "email"))
+             |> change_password_hash(password)
+             |> Repo.insert(),
+           do: {:ok, create_token!(user, :auth)}
+    end)
+    |> anonymize_email_exists_error()
+  end
+
   @spec start_email_change(User.t(), String.t(), String.t(), url_builder(confirm_email_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_email_change(user, email, password, url_fun) do
@@ -80,30 +104,6 @@ defmodule Demo.Core.User do
       token = create_token!(user, :confirm_email, %{email: email})
       Demo.Core.Mailer.send(email, subject, body_fun.(token))
     end
-  end
-
-  @doc """
-  Finishes the registration process.
-
-  On success, this function creates the user entry and returns the auth token that can be used with
-  `authenticate/1`. If the token is invalid or expired, or if the email has been taken, the
-  function returns `:error`. We don't make distinctions between these scenarios to avoid leaking
-  emails.
-  """
-  @spec finish_registration(confirm_email_token, String.t()) ::
-          {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
-  def finish_registration(token, password) do
-    Repo.transact(fn ->
-      with {:ok, token} <- spend_token(token, :confirm_email),
-           :ok <- validate(token.user == nil),
-           {:ok, user} <-
-             %User{}
-             |> change_email(Map.fetch!(token.payload, "email"))
-             |> change_password_hash(password)
-             |> Repo.insert(),
-           do: {:ok, create_token!(user, :auth)}
-    end)
-    |> anonymize_email_exists_error()
   end
 
   defp change_email(user, email),
