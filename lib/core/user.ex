@@ -1,6 +1,7 @@
 defmodule Demo.Core.User do
   import Demo.Helpers
 
+  import Demo.Helpers
   import Ecto.Changeset
   import Ecto.Query
 
@@ -164,12 +165,8 @@ defmodule Demo.Core.User do
         else: add_error(changeset, :current, "is not valid")
 
     case apply_action(changeset, :update) do
-      {:ok, user} ->
-        {:ok, user.password_hash}
-
-      {:error, changeset} ->
-        empty_changeset = change({%{}, %{}})
-        {:error, %Ecto.Changeset{empty_changeset | errors: changeset.errors, valid?: false}}
+      {:ok, user} -> {:ok, user.password_hash}
+      {:error, changeset} -> {:error, transfer_changeset_errors(changeset, empty_changeset())}
     end
   end
 
@@ -184,7 +181,7 @@ defmodule Demo.Core.User do
            set: [password_hash: new_password_hash]
          ) do
       {1, [user]} -> {:ok, user}
-      {0, _} -> {:error, {%{}, %{}} |> change() |> add_error(:current, "is not valid")}
+      {0, _} -> {:error, add_error(empty_changeset(), :current, "is not valid")}
     end
   end
 
