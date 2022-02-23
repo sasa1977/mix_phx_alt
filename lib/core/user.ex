@@ -14,21 +14,6 @@ defmodule Demo.Core.User do
 
   @type url_builder(arg) :: (arg -> url :: String.t())
 
-  @doc """
-  Starts the registration process.
-
-      1. Creates the new confirm_email token.
-      2. Sends the activation email to the user, unless the user is already registered.
-
-  Note that this function doesn't create the user entry. Multiple different registrations can be
-  created for the same email, but only one of them will succeed. In addition, this function will
-  not tell the user that the email has already been taken. This approach prevents possible
-  malicious impersonations, as well as enumeration and timing attacks.
-
-  The rest of the data is provided in `finish_registration/2`. Most notably, this is the place
-  where the user provides the password, which reduces the chances of impersonations (person owning
-  the account is not the person with the access to the given email).
-  """
   @spec start_registration(String.t(), url_builder(confirm_email_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email, url_fun) do
@@ -37,26 +22,17 @@ defmodule Demo.Core.User do
            |> change(email: email)
            |> validate_email()
            |> apply_action(:insert) do
+      # Note that we don't create the user entry here. Multiple different registrations can be
+      # started for the same email, but only one can succeed. This prevents hijacking the
+      # registration for a non-owned email. See `create_email_confirm_token` for details.
       create_email_confirm_token(
         email,
         "Registration",
         &"To create the account visit #{url_fun.(&1)}"
       )
-
-      # To avoid enumeration attacks this function always succeeds if email is valid.
-      # See `create_email_confirm_token` for details.
-      :ok
     end
   end
 
-  @doc """
-  Finishes the registration process.
-
-  On success, this function creates the user entry and returns the auth token that can be used with
-  `authenticate/1`. If the token is invalid or expired, or if the email has been taken, the
-  function returns `:error`. We don't make distinctions between these scenarios to avoid leaking
-  emails.
-  """
   @spec finish_registration(confirm_email_token, String.t()) ::
           {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
   def finish_registration(token, password) do
@@ -89,10 +65,6 @@ defmodule Demo.Core.User do
         "Confirm email change",
         &"To use this email address click the following url:\n#{url_fun.(&1)}"
       )
-
-      # To avoid enumeration attacks this function always succeeds if email is valid.
-      # See `create_email_confirm_token` for details.
-      :ok
     end
   end
 
@@ -113,13 +85,20 @@ defmodule Demo.Core.User do
   end
 
   defp create_email_confirm_token(user \\ nil, email, subject, body_fun) do
-    # We'll only generate the token and send an e-mail if the user doesn't exist to avoid
-    # spamming registered users with unwanted mails. However, to prevent enumeration attacks,
-    # this operation will always succeed, even if the email has been taken.
+    # We'll only generate the token and send an e-mail if the user doesn't exist to avoid spamming
+    # registered users with unwanted mails.
+    #
+    # Furthermore, we don't check for the email uniqueness. Multiple confirm tokens can be created
+    # for the same e-mail, by the same user, or by multiple users. This allows retries, and
+    # prevents hijacking of non-owned emails, when a user tries to confirm the email address they
+    # don't own.
     unless Repo.exists?(where(User, email: ^email)) do
       token = create_token!(user, :confirm_email, %{email: email})
       Demo.Core.Mailer.send(email, subject, body_fun.(token))
     end
+
+    # To prevent enumeration attacks, this operation will always succeed, even if the email has been taken.
+    :ok
   end
 
   defp change_email(user, email),
