@@ -117,14 +117,6 @@ defmodule Demo.Core.User do
       else: :error
   end
 
-  @spec authenticate(auth_token) :: User.t() | nil
-  def authenticate(auth_token) do
-    case Token.fetch(auth_token, :auth) do
-      {:ok, token} -> token.user
-      :error -> nil
-    end
-  end
-
   @spec start_password_reset(String.t(), url_builder(password_reset_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_password_reset(email, url_fun) do

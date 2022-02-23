@@ -25,10 +25,9 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def finish_registration_form(conn, %{"token" => token}) do
-    case Token.validate(token, :confirm_email) do
-      :ok -> render(conn, :finish_registration, token: token, changeset: empty_changeset())
-      :error -> {:error, :not_found}
-    end
+    if Token.valid?(token, :confirm_email),
+      do: render(conn, :finish_registration, token: token, changeset: empty_changeset()),
+      else: {:error, :not_found}
   end
 
   def finish_registration(conn, %{"token" => token, "user" => %{"password" => password}}) do
@@ -136,10 +135,9 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def reset_password_form(conn, %{"token" => token}) do
-    case Token.validate(token, :password_reset) do
-      :ok -> render(conn, :reset_password, changeset: empty_changeset(), token: token)
-      :error -> {:error, :not_found}
-    end
+    if Token.valid?(token, :password_reset),
+      do: render(conn, :reset_password, changeset: empty_changeset(), token: token),
+      else: {:error, :not_found}
   end
 
   def reset_password(conn, %{"token" => token, "user" => %{"password" => password}}) do

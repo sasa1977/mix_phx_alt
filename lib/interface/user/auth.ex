@@ -4,10 +4,12 @@ defmodule Demo.Interface.User.Auth do
   import Phoenix.Controller
   import Plug.Conn
 
+  alias Demo.Core.{Model, Token, User}
+
   # credo:disable-for-next-line Credo.Check.Readability.AliasAs
   alias Demo.Interface.Router.Helpers, as: Routes
 
-  @spec token(Plug.Conn.t()) :: Demo.Core.User.auth_token() | nil
+  @spec token(Plug.Conn.t()) :: User.auth_token() | nil
   def token(conn), do: get_session(conn, :auth_token)
 
   @doc "Clear the session and remember cookie"
@@ -20,7 +22,7 @@ defmodule Demo.Interface.User.Auth do
   end
 
   @doc "Sets the authentication token, and optionally also stores it in a remember cookie."
-  @spec set(Plug.Conn.t(), Demo.Core.User.auth_token(), remember?: boolean) :: Plug.Conn.t()
+  @spec set(Plug.Conn.t(), User.auth_token(), remember?: boolean) :: Plug.Conn.t()
   def set(conn, auth_token, opts \\ []) do
     conn
     |> clear()
@@ -29,7 +31,7 @@ defmodule Demo.Interface.User.Auth do
       if Keyword.get(opts, :remember?, false) do
         put_resp_cookie(conn, "auth_token", auth_token,
           sign: true,
-          max_age: Demo.Core.Model.Token.validity(:auth) * 24 * 60 * 60,
+          max_age: Model.Token.validity(:auth) * 24 * 60 * 60,
           same_site: "Lax"
         )
       else
@@ -53,7 +55,12 @@ defmodule Demo.Interface.User.Auth do
         {remember_token, conn}
       end
 
-    current_user = auth_token && Demo.Core.User.authenticate(auth_token)
+    current_user =
+      auth_token &&
+        case Token.fetch(auth_token, :auth) do
+          {:ok, token} -> token.user
+          :error -> nil
+        end
 
     assign(conn, :current_user, current_user)
   end

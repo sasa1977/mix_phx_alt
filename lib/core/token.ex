@@ -36,10 +36,12 @@ defmodule Demo.Core.Token do
     :ok
   end
 
-  @spec validate(t, Token.type()) :: :ok | :error
-  def validate(token, type) do
-    with {:ok, hash} <- hash(token),
-         do: validate(Repo.exists?(valid_tokens_query(), hash: hash, type: type))
+  @spec valid?(t, Token.type()) :: boolean
+  def valid?(token, type) do
+    case hash(token) do
+      {:ok, hash} -> Repo.exists?(valid_tokens_query(), hash: hash, type: type)
+      :error -> false
+    end
   end
 
   @spec fetch(t, Token.type()) :: {:ok, Token.t()} | :error
