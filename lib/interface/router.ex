@@ -22,41 +22,31 @@ defmodule Demo.Interface.Router do
 
   # anonymous routes
   scope "/", Demo.Interface do
-    pipe_through [:browser, :require_anonymous]
+    pipe_through [:browser]
 
+    get "/", User.Controller, :welcome, as: :user
+
+    # registration
     get "/start_registration", User.Controller, :start_registration_form, as: :user
     post "/start_registration", User.Controller, :start_registration, as: :user
-
     get "/finish_registration/:token", User.Controller, :finish_registration_form, as: :user
     post "/finish_registration/:token", User.Controller, :finish_registration, as: :user
 
+    # login/logout
     get "/login", User.Controller, :login_form, as: :user
     post "/login", User.Controller, :login, as: :user
-
-    get "/start_password_reset", User.Controller, :start_password_reset_form, as: :user
-    post "/start_password_reset", User.Controller, :start_password_reset, as: :user
-
-    get "/reset_password/:token", User.Controller, :reset_password_form, as: :user
-    post "/reset_password/:token", User.Controller, :reset_password, as: :user
-  end
-
-  # logged-in routes
-  scope "/", Demo.Interface do
-    pipe_through [:browser, :require_user]
-
-    get "/", User.Controller, :welcome, as: :user
     delete "/logout", User.Controller, :logout, as: :user
 
+    # password reset
+    get "/start_password_reset", User.Controller, :start_password_reset_form, as: :user
+    post "/start_password_reset", User.Controller, :start_password_reset, as: :user
+    get "/reset_password/:token", User.Controller, :reset_password_form, as: :user
+    post "/reset_password/:token", User.Controller, :reset_password, as: :user
+
+    # settings
     get "/settings", User.Controller, :settings, as: :user
     post "/change_password", User.Controller, :change_password, as: :user
-
     post "/start_email_change", User.Controller, :start_email_change, as: :user
-  end
-
-  # auth-status independent routes
-  scope "/", Demo.Interface do
-    pipe_through [:browser]
-
     get "/change_email/:token", User.Controller, :change_email, as: :user
   end
 

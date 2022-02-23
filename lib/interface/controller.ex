@@ -3,6 +3,7 @@ defmodule Demo.Interface.Controller do
     quote do
       use Phoenix.Controller
 
+      import Demo.Interface.User.Auth
       import Plug.Conn
 
       # credo:disable-for-next-line Credo.Check.Readability.AliasAs
