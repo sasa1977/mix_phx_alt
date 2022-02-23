@@ -17,8 +17,8 @@ defmodule Demo.Helpers do
   @spec empty_changeset :: Ecto.Changeset.t()
   def empty_changeset, do: changeset([])
 
-  @spec changeset(map, map | Keyword.t()) :: Ecto.Changeset.t()
-  def changeset(data \\ %{}, types), do: Ecto.Changeset.change({data, Map.new(types)})
+  @spec changeset(map | Keyword.t()) :: Ecto.Changeset.t()
+  def changeset(types), do: Ecto.Changeset.change({%{}, Map.new(types)})
 
   @spec validate_field(Ecto.Changeset.t(), atom, (any -> boolean), String.t()) ::
           Ecto.Changeset.t()
