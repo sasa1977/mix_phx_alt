@@ -58,8 +58,8 @@ defmodule Demo.Core.User do
            changeset(email: :string, password: :string)
            |> change(email: email, password: password)
            |> validate_email()
-           |> validate_field(:email, &(&1 != user.email), "is the same")
-           |> validate_field(:password, &password_ok?(user, &1), "is invalid")
+           |> validate_field(:email, &if(&1 == user.email, do: "is the same"))
+           |> validate_field(:password, &unless(password_ok?(user, &1), do: "is invalid"))
            |> apply_action(:update) do
       create_email_confirmation(
         user,
@@ -181,7 +181,7 @@ defmodule Demo.Core.User do
            changeset(current: :string, new: :string)
            |> change(current: current, new: new)
            |> validate_password(:new)
-           |> validate_field(:current, &password_ok?(user, &1), "is invalid")
+           |> validate_field(:current, &unless(password_ok?(user, &1), do: "is invalid"))
            |> apply_action(:update),
          {:ok, user} <- safe_update_password_hash(user, password_hash(new)) do
       # Since the password has been changed, we'll delete all other user's tokens. We're

@@ -20,12 +20,12 @@ defmodule Demo.Helpers do
   @spec changeset(map | Keyword.t()) :: Ecto.Changeset.t()
   def changeset(types), do: Ecto.Changeset.change({%{}, Map.new(types)})
 
-  @spec validate_field(Ecto.Changeset.t(), atom, (any -> boolean), String.t()) ::
+  @spec validate_field(Ecto.Changeset.t(), atom, (any -> String.t() | nil)) ::
           Ecto.Changeset.t()
-  def validate_field(changeset, field, validator, error) do
-    if validator.(Ecto.Changeset.get_field(changeset, field)),
-      do: changeset,
-      else: Ecto.Changeset.add_error(changeset, field, error)
+  def validate_field(changeset, field, validator) do
+    if error = validator.(Ecto.Changeset.get_field(changeset, field)),
+      do: Ecto.Changeset.add_error(changeset, field, error),
+      else: changeset
   end
 
   @spec ok!({:ok, result}) :: result when result: var
