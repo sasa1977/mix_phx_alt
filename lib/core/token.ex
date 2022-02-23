@@ -62,7 +62,7 @@ defmodule Demo.Core.Token do
 
   @spec delete(value, Token.type()) :: :ok
   def delete(token, type) do
-    Repo.delete_all(where(Token, hash: ^ok!(hash(token)), type: ^type))
+    with {:ok, hash} <- hash(token), do: Repo.delete_all(where(Token, hash: ^hash, type: ^type))
     :ok
   end
 
