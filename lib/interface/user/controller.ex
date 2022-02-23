@@ -78,8 +78,7 @@ defmodule Demo.Interface.User.Controller do
   # Settings
   # ------------------------------------------------------------------------
 
-  def settings(conn, _params),
-    do: render(conn, :settings, password_changeset: empty_changeset())
+  def settings(conn, _params), do: render_form(conn)
 
   def change_password(conn, %{"password" => password}) do
     %{"current" => current, "new" => new} = password
@@ -91,8 +90,35 @@ defmodule Demo.Interface.User.Controller do
         |> on_authenticated(auth_token)
 
       {:error, changeset} ->
-        render(conn, :settings, password_changeset: changeset)
+        render_form(conn, password_changeset: changeset)
     end
+  end
+
+  def start_email_change(conn, %{"change_email" => %{"email" => email, "password" => password}}) do
+    case User.start_email_change(
+           conn.assigns.current_user,
+           email,
+           password,
+           &Routes.user_url(conn, :change_email, &1)
+         ) do
+      :ok -> render(conn, :instructions_sent, email: email)
+      {:error, changeset} -> render_form(conn, email_changeset: changeset)
+    end
+  end
+
+  def change_email(conn, %{"token" => token}) do
+    case User.change_email(token) do
+      {:ok, token} ->
+        conn |> put_flash(:info, "Email changed successfully.") |> on_authenticated(token)
+
+      :error ->
+        {:error, :not_found}
+    end
+  end
+
+  defp render_form(conn, assigns \\ []) do
+    default_assigns = [password_changeset: empty_changeset(), email_changeset: empty_changeset()]
+    render(conn, :settings, Keyword.merge(default_assigns, assigns))
   end
 
   # ------------------------------------------------------------------------

@@ -14,81 +14,108 @@ defmodule Demo.Core.User do
 
   @type url_builder(arg) :: (arg -> url :: String.t())
 
-  @doc """
-  Starts the registration process.
-
-      1. Creates the new confirm_email token.
-      2. Sends the activation email to the user, unless the user is already registered.
-
-  Note that this function doesn't create the user entry. Multiple different registrations can be
-  created for the same email, but only one of them will succeed. In addition, this function will
-  not tell the user that the email has already been taken. This approach prevents possible
-  malicious impersonations, as well as enumeration and timing attacks.
-
-  The rest of the data is provided in `finish_registration/2`. Most notably, this is the place
-  where the user provides the password, which reduces the chances of impersonations (person owning
-  the account is not the person with the access to the given email).
-  """
   @spec start_registration(String.t(), url_builder(confirm_email_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email, url_fun) do
-    with :ok <- validate_email(email) do
-      # We'll only generate the token and send an e-mail if the user doesn't exist. This avoid
-      # spamming registered users with unwanted mails. However, to prevent enumeration attacks,
-      # this operation will always succeed, even if the email has been taken.
-      unless Repo.exists?(where(User, email: ^email)) do
-        token = create_token!(nil, :confirm_email, %{email: email})
-
-        Demo.Core.Mailer.send(
-          email,
-          "Registration",
-          "To create the account visit #{url_fun.(token)}"
-        )
-      end
-
-      :ok
+    with {:ok, _} <-
+           changeset(email: :string)
+           |> change(email: email)
+           |> validate_email()
+           |> apply_action(:insert) do
+      # Note that we don't create the user entry here. Multiple different registrations can be
+      # started for the same email, but only one can succeed. This prevents hijacking the
+      # registration for a non-owned email. See `create_email_confirm_token` for details.
+      create_email_confirm_token(
+        email,
+        "Registration",
+        &"To create the account visit #{url_fun.(&1)}"
+      )
     end
   end
 
-  @doc """
-  Finishes the registration process.
-
-  On success, this function creates the user entry and returns the auth token that can be used with
-  `authenticate/1`. If the token is invalid or expired, or if the email has been taken, the
-  function returns `:error`. We don't make distinctions between these scenarios to avoid leaking
-  emails.
-  """
   @spec finish_registration(confirm_email_token, String.t()) ::
           {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
-  def finish_registration(confirm_email_token, password) do
+  def finish_registration(token, password) do
     Repo.transact(fn ->
-      with {:ok, token} <- fetch_token(confirm_email_token, :confirm_email),
-           :ok <- validate(token != nil),
-           {:ok, user} <- store_user(Map.fetch!(token.payload, "email"), password) do
-        # confirm_email is a one-time token, so we're deleting it now
-        Repo.delete(token)
+      with {:ok, token} <- spend_token(token, :confirm_email),
+           :ok <- validate(token.user == nil),
+           {:ok, user} <-
+             %User{}
+             |> change_email(Map.fetch!(token.payload, "email"))
+             |> change_password_hash(password)
+             |> Repo.insert(),
+           do: {:ok, create_token!(user, :auth)}
+    end)
+    |> anonymize_email_exists_error()
+  end
+
+  @spec start_email_change(User.t(), String.t(), String.t(), url_builder(confirm_email_token)) ::
+          :ok | {:error, Ecto.Changeset.t()}
+  def start_email_change(user, email, password, url_fun) do
+    with {:ok, _} <-
+           changeset(email: :string, password: :string)
+           |> change(email: email, password: password)
+           |> validate_email()
+           |> validate_field(:email, &(&1 != user.email), "is the same")
+           |> validate_field(:password, &password_ok?(user, &1), "is invalid")
+           |> apply_action(:update) do
+      create_email_confirm_token(
+        user,
+        email,
+        "Confirm email change",
+        &"To use this email address click the following url:\n#{url_fun.(&1)}"
+      )
+    end
+  end
+
+  @spec change_email(confirm_email_token) :: {:ok, auth_token} | :error
+  def change_email(token) do
+    Repo.transact(fn ->
+      with {:ok, token} <- spend_token(token, :confirm_email),
+           :ok <- validate(token.user != nil),
+           {:ok, user} <-
+             token.user
+             |> change_email(Map.fetch!(token.payload, "email"))
+             |> Repo.update() do
+        Repo.delete_all(where(Token, user_id: ^user.id))
         {:ok, create_token!(user, :auth)}
       end
     end)
-    |> then(
-      # convert "email has already been taken" into a generic error, because the user can't do anything at this point
-      &with {:error, %Ecto.Changeset{errors: errors}} <- &1,
-            {"has already been taken", _} <- Keyword.get(errors, :email),
-            do: :error,
-            else: (_ -> &1)
-    )
+    |> anonymize_email_exists_error()
+  end
+
+  defp create_email_confirm_token(user \\ nil, email, subject, body_fun) do
+    # We'll only generate the token and send an e-mail if the user doesn't exist to avoid spamming
+    # registered users with unwanted mails.
+    #
+    # Furthermore, we don't check for the email uniqueness. Multiple confirm tokens can be created
+    # for the same e-mail, by the same user, or by multiple users. This allows retries, and
+    # prevents hijacking of non-owned emails, when a user tries to confirm the email address they
+    # don't own.
+    unless Repo.exists?(where(User, email: ^email)) do
+      token = create_token!(user, :confirm_email, %{email: email})
+      Demo.Core.Mailer.send(email, subject, body_fun.(token))
+    end
+
+    # To prevent enumeration attacks, this operation will always succeed, even if the email has been taken.
+    :ok
+  end
+
+  defp change_email(user, email),
+    do: user |> change(email: email) |> unique_constraint(:email)
+
+  defp anonymize_email_exists_error(outcome) do
+    with {:error, %Ecto.Changeset{errors: errors}} <- outcome,
+         {"has already been taken", _} <- Keyword.get(errors, :email),
+         do: :error,
+         else: (_ -> outcome)
   end
 
   @spec login(String.t(), String.t()) :: {:ok, auth_token} | :error
   def login(email, password) do
     user = Repo.get_by(User, email: email)
 
-    password_valid? =
-      if user != nil,
-        do: Bcrypt.verify_pass(password, user.password_hash),
-        else: Bcrypt.no_user_verify()
-
-    if password_valid?,
+    if password_ok?(user, password),
       do: {:ok, create_token!(user, :auth)},
       else: :error
   end
@@ -96,7 +123,7 @@ defmodule Demo.Core.User do
   @spec authenticate(auth_token) :: User.t() | nil
   def authenticate(auth_token) do
     case fetch_token(auth_token, :auth) do
-      {:ok, token} -> Repo.one!(Ecto.assoc(token, :user))
+      {:ok, token} -> token.user
       :error -> nil
     end
   end
@@ -110,7 +137,11 @@ defmodule Demo.Core.User do
   @spec start_password_reset(String.t(), url_builder(password_reset_token)) ::
           :ok | {:error, Ecto.Changeset.t()}
   def start_password_reset(email, url_fun) do
-    with :ok <- validate_email(email) do
+    with {:ok, _} <-
+           changeset(email: :string)
+           |> change(email: email)
+           |> validate_email()
+           |> apply_action(:update) do
       if user = Repo.one(User, email: email) do
         token = create_token!(user, :password_reset)
 
@@ -131,11 +162,7 @@ defmodule Demo.Core.User do
   def reset_password(token, password) do
     Repo.transact(fn ->
       with {:ok, token} <- fetch_token(token, :password_reset),
-           :ok <- validate(token != nil),
-           {:ok, user} <-
-             Repo.one!(Ecto.assoc(token, :user))
-             |> change_password_hash(password)
-             |> Repo.update() do
+           {:ok, user} <- token.user |> change_password_hash(password) |> Repo.update() do
         # delete the token so it can't be used again
         Repo.delete(token)
         {:ok, create_token!(user, :auth)}
@@ -146,7 +173,12 @@ defmodule Demo.Core.User do
   @spec change_password(User.t(), String.t(), String.t()) ::
           {:ok, auth_token} | {:error, Ecto.Changeset.t()}
   def change_password(user, current, new) do
-    with {:ok, new_password_hash} <- validate_password_change(user, current, new),
+    with {:ok, %{password_hash: new_password_hash}} <-
+           changeset(password_hash: :binary, current: :string)
+           |> change(current: current)
+           |> validate_field(:current, &password_ok?(user, &1), "is invalid")
+           |> change_password_hash(new, field_name: :new)
+           |> apply_action(:update),
          {:ok, user} <- safe_update_password_hash(user, new_password_hash) do
       # Since the password has been changed, we'll delete all other user's tokens. We're
       # deliberately doing this outside of the transaction to make sure that login attempts with
@@ -156,18 +188,10 @@ defmodule Demo.Core.User do
     end
   end
 
-  defp validate_password_change(user, current, new) do
-    changeset = change_password_hash(user, new, field_name: :new)
-
-    changeset =
-      if Bcrypt.verify_pass(current, user.password_hash),
-        do: changeset,
-        else: add_error(changeset, :current, "is not valid")
-
-    case apply_action(changeset, :update) do
-      {:ok, user} -> {:ok, user.password_hash}
-      {:error, changeset} -> {:error, transfer_changeset_errors(changeset, empty_changeset())}
-    end
+  defp password_ok?(user, password) do
+    if user != nil,
+      do: Bcrypt.verify_pass(password, user.password_hash),
+      else: Bcrypt.no_user_verify()
   end
 
   defp safe_update_password_hash(user, new_password_hash) do
@@ -180,8 +204,13 @@ defmodule Demo.Core.User do
            ),
            set: [password_hash: new_password_hash]
          ) do
-      {1, [user]} -> {:ok, user}
-      {0, _} -> {:error, add_error(empty_changeset(), :current, "is not valid")}
+      {1, [user]} ->
+        {:ok, user}
+
+      {0, _} ->
+        changeset(current: :string)
+        |> add_error(:current, "is not valid")
+        |> apply_action(:update)
     end
   end
 
@@ -191,25 +220,11 @@ defmodule Demo.Core.User do
          do: validate(Repo.exists?(valid_tokens_query(), hash: hash, type: type))
   end
 
-  defp store_user(email, password) do
-    %User{}
-    |> change(email: email)
-    |> change_password_hash(password)
-    |> unique_constraint(:email)
-    |> Repo.insert()
-  end
-
-  defp validate_email(email) do
-    with {:ok, _} <-
-           %User{}
-           |> change(email: email)
-           |> validate_required([:email])
-           |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/,
-             message: "must have the @ sign and no spaces"
-           )
-           |> validate_length(:email, max: 160)
-           |> apply_action(:insert),
-         do: :ok
+  defp validate_email(changeset) do
+    changeset
+    |> validate_required([:email])
+    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
+    |> validate_length(:email, max: 160)
   end
 
   defp change_password_hash(user_or_changeset, password, opts \\ []) do
@@ -247,9 +262,14 @@ defmodule Demo.Core.User do
          do: {:ok, :crypto.hash(:sha256, token_bytes)}
   end
 
+  defp spend_token(token, type) do
+    fetch_token(token, type)
+    |> tap(&with {:ok, token} <- &1, do: Repo.delete(token))
+  end
+
   defp fetch_token(token, type) do
     with {:ok, token_hash} <- token_hash(token),
-         token = Repo.get_by(valid_tokens_query(), hash: token_hash, type: type),
+         token = Repo.get_by(preload(valid_tokens_query(), :user), hash: token_hash, type: type),
          :ok <- validate(token != nil),
          do: {:ok, token}
   end
