@@ -96,6 +96,22 @@ defmodule Demo.Core.User do
     end
   end
 
+  @spec change_email(confirm_email_token) :: {:ok, auth_token} | :error
+  def change_email(token) do
+    Repo.transact(fn ->
+      with {:ok, token} <- spend_token(token, :confirm_email),
+           :ok <- validate(token.user != nil),
+           {:ok, user} <-
+             token.user
+             |> change_email(Map.fetch!(token.payload, "email"))
+             |> Repo.update() do
+        Repo.delete_all(where(Token, user_id: ^user.id))
+        {:ok, create_token!(user, :auth)}
+      end
+    end)
+    |> anonymize_email_exists_error()
+  end
+
   defp create_email_confirm_token(user \\ nil, email, subject, body_fun) do
     # We'll only generate the token and send an e-mail if the user doesn't exist to avoid
     # spamming registered users with unwanted mails. However, to prevent enumeration attacks,

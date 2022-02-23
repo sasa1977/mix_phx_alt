@@ -53,6 +53,13 @@ defmodule Demo.Interface.Router do
     post "/start_email_change", User.Controller, :start_email_change, as: :user
   end
 
+  # auth-status independent routes
+  scope "/", Demo.Interface do
+    pipe_through [:browser]
+
+    get "/change_email/:token", User.Controller, :change_email, as: :user
+  end
+
   if Mix.env() in [:dev, :test] do
     import Phoenix.LiveDashboard.Router
 

@@ -99,10 +99,20 @@ defmodule Demo.Interface.User.Controller do
            conn.assigns.current_user,
            email,
            password,
-           &"http://localhost:4000/change_email/#{&1}"
+           &Routes.user_url(conn, :change_email, &1)
          ) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render_form(conn, email_changeset: changeset)
+    end
+  end
+
+  def change_email(conn, %{"token" => token}) do
+    case User.change_email(token) do
+      {:ok, token} ->
+        conn |> put_flash(:info, "Email changed successfully.") |> on_authenticated(token)
+
+      :error ->
+        {:error, :not_found}
     end
   end
 
