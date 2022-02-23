@@ -5,9 +5,17 @@ defmodule Demo.Core.Token do
   alias Demo.Core.Model.{Token, User}
   alias Demo.Core.Repo
 
-  @type t :: String.t()
+  @type value :: String.t()
 
-  @spec create(User.t(), Token.type(), map) :: t
+  @doc """
+  Creates the new token and retuns its value.
+
+  Notes:
+
+    - we only store the hash of the token value to the database (to prevent unauthorized usage of the tokens)
+    - the returned value is url64 encoded
+  """
+  @spec create(User.t(), Token.type(), map) :: value
   def create(user, type, payload \\ %{}) do
     token_bytes = :crypto.strong_rand_bytes(32)
     token = Base.url_encode64(token_bytes, padding: false)
@@ -24,7 +32,7 @@ defmodule Demo.Core.Token do
     token
   end
 
-  @spec delete(t, Token.type()) :: :ok
+  @spec delete(value, Token.type()) :: :ok
   def delete(token, type) do
     Repo.delete_all(where(Token, hash: ^ok!(hash(token)), type: ^type))
     :ok
@@ -36,7 +44,7 @@ defmodule Demo.Core.Token do
     :ok
   end
 
-  @spec valid?(t, Token.type()) :: boolean
+  @spec valid?(value, Token.type()) :: boolean
   def valid?(token, type) do
     case hash(token) do
       {:ok, hash} -> Repo.exists?(valid_tokens_query(), hash: hash, type: type)
@@ -44,7 +52,7 @@ defmodule Demo.Core.Token do
     end
   end
 
-  @spec fetch(t, Token.type()) :: {:ok, Token.t()} | :error
+  @spec fetch(value, Token.type()) :: {:ok, Token.t()} | :error
   def fetch(token, type) do
     with {:ok, token_hash} <- hash(token),
          token =
@@ -58,7 +66,7 @@ defmodule Demo.Core.Token do
          do: {:ok, token}
   end
 
-  @spec spend(t, Token.type()) :: {:ok, Token.t()} | :error
+  @spec spend(value, Token.type()) :: {:ok, Token.t()} | :error
   def spend(token, type) do
     fetch(token, type)
     |> tap(&with {:ok, token} <- &1, do: Repo.delete(token))

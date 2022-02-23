@@ -5,9 +5,9 @@ defmodule Demo.Core.User do
 
   alias Demo.Core.{Model.User, Repo, Token}
 
-  @type confirm_email_token :: Token.t()
-  @type auth_token :: Token.t()
-  @type password_reset_token :: Token.t()
+  @type confirm_email_token :: Token.value()
+  @type auth_token :: Token.value()
+  @type password_reset_token :: Token.value()
 
   @type url_builder(arg) :: (arg -> url :: String.t())
 
