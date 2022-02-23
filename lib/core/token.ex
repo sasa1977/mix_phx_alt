@@ -32,18 +32,6 @@ defmodule Demo.Core.Token do
     token
   end
 
-  @spec delete(value, Token.type()) :: :ok
-  def delete(token, type) do
-    Repo.delete_all(where(Token, hash: ^ok!(hash(token)), type: ^type))
-    :ok
-  end
-
-  @spec delete_all(User.t()) :: :ok
-  def delete_all(user) do
-    Repo.delete_all(where(Token, user_id: ^user.id))
-    :ok
-  end
-
   @spec valid?(value, Token.type()) :: boolean
   def valid?(token, type) do
     case hash(token) do
@@ -70,6 +58,18 @@ defmodule Demo.Core.Token do
   def spend(token, type) do
     fetch(token, type)
     |> tap(&with {:ok, token} <- &1, do: Repo.delete(token))
+  end
+
+  @spec delete(value, Token.type()) :: :ok
+  def delete(token, type) do
+    Repo.delete_all(where(Token, hash: ^ok!(hash(token)), type: ^type))
+    :ok
+  end
+
+  @spec delete_all(User.t()) :: :ok
+  def delete_all(user) do
+    Repo.delete_all(where(Token, user_id: ^user.id))
+    :ok
   end
 
   defp hash(token) do
