@@ -64,11 +64,6 @@ defmodule Demo.Interface.User.PasswordResetTest do
       assert conn.status == 404
     end
 
-    test "form redirects if the user is authenticated" do
-      conn = register!() |> recycle() |> get("/reset_password/some_token")
-      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
-    end
-
     test "succeeds with valid token" do
       registration_params = valid_registration_params()
       register!(registration_params)

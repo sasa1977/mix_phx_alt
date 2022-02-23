@@ -13,8 +13,7 @@ defmodule Demo.Interface.User.Controller do
         start_registration_form start_registration
         finish_registration_form finish_registration
         login_form login
-        start_password_reset_form start_password_reset
-        reset_password_form reset_password/a
+        start_password_reset_form start_password_reset/a
 
   plug :require_user
        when action in ~w/welcome logout settings change_password start_email_change/a
