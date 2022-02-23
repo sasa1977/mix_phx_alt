@@ -108,8 +108,8 @@ defmodule Demo.Interface.User.AuthenticationTest do
     conn1 = register!()
     token1 = ok!(start_registration(new_email()))
 
-    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.User.TokenCleanup)
-    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.User.TokenCleanup)
+    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.Token.Cleanup)
+    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.Token.Cleanup)
 
     assert Repo.aggregate(Model.Token, :count) == 2
 

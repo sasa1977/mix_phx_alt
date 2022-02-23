@@ -1,5 +1,5 @@
 defmodule Demo.Core do
-  use Boundary, deps: [Demo.{Config, Helpers}], exports: [User, {Model, except: [Base]}]
+  use Boundary, deps: [Demo.{Config, Helpers}], exports: [User, Token, {Model, except: [Base]}]
 
   @spec start_link :: Supervisor.on_start()
   def start_link do
@@ -7,7 +7,7 @@ defmodule Demo.Core do
       [
         Demo.Core.Repo,
         {Phoenix.PubSub, name: Demo.PubSub},
-        Demo.Core.User
+        Demo.Core.Token
       ],
       name: __MODULE__,
       strategy: :one_for_one

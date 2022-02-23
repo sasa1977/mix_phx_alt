@@ -1,16 +1,13 @@
 defmodule Demo.Core.User do
   import Demo.Helpers
-
-  import Demo.Helpers
   import Ecto.Changeset
   import Ecto.Query
 
-  alias Demo.Core.Model.{Token, User}
-  alias Demo.Core.Repo
+  alias Demo.Core.{Model.User, Repo, Token}
 
-  @type confirm_email_token :: String.t()
-  @type auth_token :: String.t()
-  @type password_reset_token :: String.t()
+  @type confirm_email_token :: Token.t()
+  @type auth_token :: Token.t()
+  @type password_reset_token :: Token.t()
 
   @type url_builder(arg) :: (arg -> url :: String.t())
 
@@ -24,8 +21,8 @@ defmodule Demo.Core.User do
            |> apply_action(:insert) do
       # Note that we don't create the user entry here. Multiple different registrations can be
       # started for the same email, but only one can succeed. This prevents hijacking the
-      # registration for a non-owned email. See `create_email_confirm_token` for details.
-      create_email_confirm_token(
+      # registration for a non-owned email. See `create_email_confirmation` for details.
+      create_email_confirmation(
         email,
         "Registration",
         &"To create the account visit #{url_fun.(&1)}"
@@ -37,14 +34,14 @@ defmodule Demo.Core.User do
           {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
   def finish_registration(token, password) do
     Repo.transact(fn ->
-      with {:ok, token} <- spend_token(token, :confirm_email),
+      with {:ok, token} <- Token.spend(token, :confirm_email),
            :ok <- validate(token.user == nil),
            {:ok, user} <-
              %User{}
              |> change_email(Map.fetch!(token.payload, "email"))
              |> change_password_hash(password)
              |> Repo.insert(),
-           do: {:ok, create_token!(user, :auth)}
+           do: {:ok, Token.create(user, :auth)}
     end)
     |> anonymize_email_exists_error()
   end
@@ -59,7 +56,7 @@ defmodule Demo.Core.User do
            |> validate_field(:email, &(&1 != user.email), "is the same")
            |> validate_field(:password, &password_ok?(user, &1), "is invalid")
            |> apply_action(:update) do
-      create_email_confirm_token(
+      create_email_confirmation(
         user,
         email,
         "Confirm email change",
@@ -71,20 +68,20 @@ defmodule Demo.Core.User do
   @spec change_email(confirm_email_token) :: {:ok, auth_token} | :error
   def change_email(token) do
     Repo.transact(fn ->
-      with {:ok, token} <- spend_token(token, :confirm_email),
+      with {:ok, token} <- Token.spend(token, :confirm_email),
            :ok <- validate(token.user != nil),
            {:ok, user} <-
              token.user
              |> change_email(Map.fetch!(token.payload, "email"))
              |> Repo.update() do
-        Repo.delete_all(where(Token, user_id: ^user.id))
-        {:ok, create_token!(user, :auth)}
+        Token.delete_all(user)
+        {:ok, Token.create(user, :auth)}
       end
     end)
     |> anonymize_email_exists_error()
   end
 
-  defp create_email_confirm_token(user \\ nil, email, subject, body_fun) do
+  defp create_email_confirmation(user \\ nil, email, subject, body_fun) do
     # We'll only generate the token and send an e-mail if the user doesn't exist to avoid spamming
     # registered users with unwanted mails.
     #
@@ -93,7 +90,7 @@ defmodule Demo.Core.User do
     # prevents hijacking of non-owned emails, when a user tries to confirm the email address they
     # don't own.
     unless Repo.exists?(where(User, email: ^email)) do
-      token = create_token!(user, :confirm_email, %{email: email})
+      token = Token.create(user, :confirm_email, %{email: email})
       Demo.Core.Mailer.send(email, subject, body_fun.(token))
     end
 
@@ -116,22 +113,16 @@ defmodule Demo.Core.User do
     user = Repo.get_by(User, email: email)
 
     if password_ok?(user, password),
-      do: {:ok, create_token!(user, :auth)},
+      do: {:ok, Token.create(user, :auth)},
       else: :error
   end
 
   @spec authenticate(auth_token) :: User.t() | nil
   def authenticate(auth_token) do
-    case fetch_token(auth_token, :auth) do
+    case Token.fetch(auth_token, :auth) do
       {:ok, token} -> token.user
       :error -> nil
     end
-  end
-
-  @spec logout(auth_token) :: :ok
-  def logout(auth_token) do
-    Repo.delete_all(where(Token, hash: ^ok!(token_hash(auth_token)), type: :auth))
-    :ok
   end
 
   @spec start_password_reset(String.t(), url_builder(password_reset_token)) ::
@@ -143,7 +134,7 @@ defmodule Demo.Core.User do
            |> validate_email()
            |> apply_action(:update) do
       if user = Repo.one(User, email: email) do
-        token = create_token!(user, :password_reset)
+        token = Token.create(user, :password_reset)
 
         Demo.Core.Mailer.send(
           email,
@@ -161,11 +152,11 @@ defmodule Demo.Core.User do
           {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
   def reset_password(token, password) do
     Repo.transact(fn ->
-      with {:ok, token} <- fetch_token(token, :password_reset),
+      with {:ok, token} <- Token.fetch(token, :password_reset),
            {:ok, user} <- token.user |> change_password_hash(password) |> Repo.update() do
         # delete the token so it can't be used again
         Repo.delete(token)
-        {:ok, create_token!(user, :auth)}
+        {:ok, Token.create(user, :auth)}
       end
     end)
   end
@@ -183,8 +174,8 @@ defmodule Demo.Core.User do
       # Since the password has been changed, we'll delete all other user's tokens. We're
       # deliberately doing this outside of the transaction to make sure that login attempts with
       # the old password won't succeed (since the hash update has been comitted at this point).
-      Repo.delete_all(where(Token, user_id: ^user.id))
-      {:ok, create_token!(user, :auth)}
+      Token.delete_all(user)
+      {:ok, Token.create(user, :auth)}
     end
   end
 
@@ -214,12 +205,6 @@ defmodule Demo.Core.User do
     end
   end
 
-  @spec validate_token(String.t(), Token.type()) :: :ok | :error
-  def validate_token(token, type) do
-    with {:ok, hash} <- token_hash(token),
-         do: validate(Repo.exists?(valid_tokens_query(), hash: hash, type: type))
-  end
-
   defp validate_email(changeset) do
     changeset
     |> validate_required([:email])
@@ -239,72 +224,5 @@ defmodule Demo.Core.User do
          :ok <- validate(length <= max_length, "should be at most #{max_length} characters"),
          do: change(changeset, password_hash: Bcrypt.hash_pwd_salt(password)),
          else: ({:error, reason} -> changeset |> add_error(field_name, reason))
-  end
-
-  defp create_token!(user, type, payload \\ %{}) do
-    token_bytes = :crypto.strong_rand_bytes(32)
-    token = Base.url_encode64(token_bytes, padding: false)
-
-    # we're only storing the token hash, to prevent the people with the database access from the
-    # unauthorized usage of the token
-    Repo.insert!(%Token{
-      user_id: user && user.id,
-      type: type,
-      hash: ok!(token_hash(token)),
-      payload: payload
-    })
-
-    token
-  end
-
-  defp token_hash(token) do
-    with {:ok, token_bytes} <- Base.url_decode64(token, padding: false),
-         do: {:ok, :crypto.hash(:sha256, token_bytes)}
-  end
-
-  defp spend_token(token, type) do
-    fetch_token(token, type)
-    |> tap(&with {:ok, token} <- &1, do: Repo.delete(token))
-  end
-
-  defp fetch_token(token, type) do
-    with {:ok, token_hash} <- token_hash(token),
-         token = Repo.get_by(preload(valid_tokens_query(), :user), hash: token_hash, type: type),
-         :ok <- validate(token != nil),
-         do: {:ok, token}
-  end
-
-  defp delete_expired_tokens do
-    {deleted_count, _} = Repo.delete_all(invalid_tokens_query())
-    deleted_count
-  end
-
-  defmacrop token_valid?(token) do
-    Token.validities()
-    |> Enum.map(fn {type, validity} ->
-      quote do
-        unquote(token).type == unquote(type) and
-          unquote(token).inserted_at > ago(unquote(validity), "day")
-      end
-    end)
-    |> Enum.reduce(&quote(do: unquote(&2) or unquote(&1)))
-  end
-
-  defp valid_tokens_query, do: from(token in Token, where: token_valid?(token))
-  defp invalid_tokens_query, do: from(token in Token, where: not token_valid?(token))
-
-  @doc false
-  @spec child_spec(any) :: Supervisor.child_spec()
-  def child_spec(_arg), do: token_cleanup()
-
-  defp token_cleanup do
-    Periodic.child_spec(
-      id: __MODULE__.TokenCleanup,
-      name: __MODULE__.TokenCleanup,
-      every: :timer.hours(1),
-      on_overlap: :stop_previous,
-      run: &delete_expired_tokens/0,
-      mode: if(Demo.Helpers.mix_env() == :test, do: :manual, else: :auto)
-    )
   end
 end

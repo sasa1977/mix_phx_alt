@@ -5,7 +5,7 @@ defmodule Demo.Interface.User.Controller do
 
   import Demo.Helpers
 
-  alias Demo.Core.User
+  alias Demo.Core.{Token, User}
   alias Demo.Interface.User.Auth
 
   def welcome(conn, _params), do: render(conn, :welcome)
@@ -25,7 +25,7 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def finish_registration_form(conn, %{"token" => token}) do
-    case User.validate_token(token, :confirm_email) do
+    case Token.validate(token, :confirm_email) do
       :ok -> render(conn, :finish_registration, token: token, changeset: empty_changeset())
       :error -> {:error, :not_found}
     end
@@ -61,7 +61,7 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def logout(conn, _params) do
-    User.logout(Auth.token(conn))
+    Token.delete(Auth.token(conn), :auth)
 
     conn
     |> Auth.clear()
@@ -136,7 +136,7 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def reset_password_form(conn, %{"token" => token}) do
-    case User.validate_token(token, :password_reset) do
+    case Token.validate(token, :password_reset) do
       :ok -> render(conn, :reset_password, changeset: empty_changeset(), token: token)
       :error -> {:error, :not_found}
     end
