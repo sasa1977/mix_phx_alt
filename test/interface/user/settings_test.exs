@@ -17,7 +17,7 @@ defmodule Demo.Interface.User.SettingsTest do
   end
 
   describe "change password" do
-    test "succeeds with valid parameters" do
+    test "succeeds with valid input" do
       params = valid_registration_params()
       previous_conn = register!(params)
 
@@ -91,7 +91,7 @@ defmodule Demo.Interface.User.SettingsTest do
   end
 
   describe "email change" do
-    test "succeeds with valid params" do
+    test "succeeds with valid input" do
       params = valid_registration_params()
       register!(params)
 

@@ -69,7 +69,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
       assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
-    test "succeeds with a valid token" do
+    test "succeeds with valid token" do
       registration_params = valid_registration_params()
       register!(registration_params)
       token = ok!(start_password_reset(registration_params.email))

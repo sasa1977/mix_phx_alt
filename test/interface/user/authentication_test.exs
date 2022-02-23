@@ -7,7 +7,7 @@ defmodule Demo.Interface.User.AuthenticationTest do
   alias Demo.Core.{Model, Repo}
 
   describe "login" do
-    test "succeeds with valid parameters" do
+    test "succeeds with valid input" do
       params = valid_registration_params()
       register!(params)
 
