@@ -70,10 +70,10 @@ defmodule Demo.Interface.User.SettingsTest do
       assert "can't be blank" in errors(conn, :password_changeset, :new)
 
       assert {:error, conn} = change_password(email, password, "12345678901")
-      assert "should be at least 12 characters" in errors(conn, :password_changeset, :new)
+      assert "should be at least 12 character(s)" in errors(conn, :password_changeset, :new)
 
       assert {:error, conn} = change_password(email, password, String.duplicate("1", 73))
-      assert "should be at most 72 characters" in errors(conn, :password_changeset, :new)
+      assert "should be at most 72 character(s)" in errors(conn, :password_changeset, :new)
     end
 
     defp change_password(conn \\ nil, email, current, new) do

@@ -77,10 +77,10 @@ defmodule Demo.Interface.User.RegistrationTest do
       assert "can't be blank" in errors(conn, :password)
 
       assert {:error, conn} = finish_registration(token, "12345678901")
-      assert "should be at least 12 characters" in errors(conn, :password)
+      assert "should be at least 12 character(s)" in errors(conn, :password)
 
       assert {:error, conn} = finish_registration(token, String.duplicate("1", 73))
-      assert "should be at most 72 characters" in errors(conn, :password)
+      assert "should be at most 72 character(s)" in errors(conn, :password)
     end
 
     test "fails for invalid token" do

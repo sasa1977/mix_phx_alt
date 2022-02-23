@@ -36,10 +36,15 @@ defmodule Demo.Core.User do
     Repo.transact(fn ->
       with {:ok, token} <- Token.spend(token, :confirm_email),
            :ok <- validate(token.user == nil),
+           {:ok, _} <-
+             changeset(password: :string)
+             |> change(password: password)
+             |> validate_password(:password)
+             |> apply_action(:insert),
            {:ok, user} <-
              %User{}
              |> change_email(Map.fetch!(token.payload, "email"))
-             |> change_password_hash(password)
+             |> change(password_hash: password_hash(password))
              |> Repo.insert(),
            do: {:ok, Token.create(user, :auth)}
     end)
@@ -152,7 +157,16 @@ defmodule Demo.Core.User do
   def reset_password(token, password) do
     Repo.transact(fn ->
       with {:ok, token} <- Token.fetch(token, :password_reset),
-           {:ok, user} <- token.user |> change_password_hash(password) |> Repo.update() do
+           {:ok, _} <-
+             changeset(password: :string)
+             |> change(password: password)
+             |> validate_password(:password)
+             |> apply_action(:update) do
+        user =
+          token.user
+          |> change(password_hash: password_hash(password))
+          |> Repo.update!()
+
         # delete the token so it can't be used again
         Repo.delete(token)
         {:ok, Token.create(user, :auth)}
@@ -163,13 +177,13 @@ defmodule Demo.Core.User do
   @spec change_password(User.t(), String.t(), String.t()) ::
           {:ok, auth_token} | {:error, Ecto.Changeset.t()}
   def change_password(user, current, new) do
-    with {:ok, %{password_hash: new_password_hash}} <-
-           changeset(password_hash: :binary, current: :string)
-           |> change(current: current)
+    with {:ok, _} <-
+           changeset(current: :string, new: :string)
+           |> change(current: current, new: new)
+           |> validate_password(:new)
            |> validate_field(:current, &password_ok?(user, &1), "is invalid")
-           |> change_password_hash(new, field_name: :new)
            |> apply_action(:update),
-         {:ok, user} <- safe_update_password_hash(user, new_password_hash) do
+         {:ok, user} <- safe_update_password_hash(user, password_hash(new)) do
       # Since the password has been changed, we'll delete all other user's tokens. We're
       # deliberately doing this outside of the transaction to make sure that login attempts with
       # the old password won't succeed (since the hash update has been comitted at this point).
@@ -183,6 +197,8 @@ defmodule Demo.Core.User do
       do: Bcrypt.verify_pass(password, user.password_hash),
       else: Bcrypt.no_user_verify()
   end
+
+  defp password_hash(password), do: Bcrypt.hash_pwd_salt(password)
 
   defp safe_update_password_hash(user, new_password_hash) do
     # Using update_all and filtering by password hash to make sure that the password hasn't
@@ -211,17 +227,11 @@ defmodule Demo.Core.User do
     |> validate_length(:email, max: 160)
   end
 
-  defp change_password_hash(user_or_changeset, password, opts \\ []) do
-    field_name = Keyword.get(opts, :field_name, :password)
-    changeset = change(user_or_changeset)
+  defp validate_password(changeset, field_name) do
+    min_length = if(Demo.Helpers.mix_env() == :dev, do: 4, else: 12)
 
-    with :ok <- validate(is_bitstring(password) and password != "", "can't be blank"),
-         length = String.length(password),
-         min_length = if(Demo.Helpers.mix_env() == :dev, do: 4, else: 12),
-         max_length = 72,
-         :ok <- validate(length >= min_length, "should be at least #{min_length} characters"),
-         :ok <- validate(length <= max_length, "should be at most #{max_length} characters"),
-         do: change(changeset, password_hash: Bcrypt.hash_pwd_salt(password)),
-         else: ({:error, reason} -> changeset |> add_error(field_name, reason))
+    changeset
+    |> validate_required(field_name)
+    |> validate_length(field_name, min: min_length, max: 72)
   end
 end

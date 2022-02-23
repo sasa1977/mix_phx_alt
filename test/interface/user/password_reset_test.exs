@@ -127,10 +127,10 @@ defmodule Demo.Interface.User.PasswordResetTest do
       assert "can't be blank" in errors(conn, :password)
 
       assert {:error, conn} = reset_password(token, "12345678901")
-      assert "should be at least 12 characters" in errors(conn, :password)
+      assert "should be at least 12 character(s)" in errors(conn, :password)
 
       assert {:error, conn} = reset_password(token, String.duplicate("1", 73))
-      assert "should be at most 72 characters" in errors(conn, :password)
+      assert "should be at most 72 character(s)" in errors(conn, :password)
     end
   end
 
