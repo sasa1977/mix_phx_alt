@@ -47,7 +47,13 @@ defmodule Demo.Core.Token do
   @spec fetch(t, Token.type()) :: {:ok, Token.t()} | :error
   def fetch(token, type) do
     with {:ok, token_hash} <- hash(token),
-         token = Repo.get_by(preload(valid_tokens_query(), :user), hash: token_hash, type: type),
+         token =
+           Repo.one(
+             from token in valid_tokens_query(),
+               where: [hash: ^token_hash, type: ^type],
+               left_join: user in assoc(token, :user),
+               preload: [user: user]
+           ),
          :ok <- validate(token != nil),
          do: {:ok, token}
   end
