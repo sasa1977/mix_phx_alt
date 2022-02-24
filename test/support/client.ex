@@ -32,7 +32,7 @@ defmodule Demo.Test.Client do
   @spec start_registration(String.t()) ::
           {:ok, User.confirm_email_token() | nil} | {:error, Plug.Conn.t()}
   def start_registration(email) do
-    conn = post(build_conn(), "/start_registration", %{user: %{email: email}})
+    conn = post(build_conn(), "/start_registration", %{form: %{email: email}})
     200 = conn.status
 
     if conn.resp_body =~ "The email with further instructions has been sent to #{email}",
@@ -54,7 +54,7 @@ defmodule Demo.Test.Client do
   @spec finish_registration(User.confirm_email_token(), String.t()) ::
           {:ok | :error, Plug.Conn.t()}
   def finish_registration(token, password) do
-    conn = post(build_conn(), "/finish_registration/#{token}", %{user: %{password: password}})
+    conn = post(build_conn(), "/finish_registration/#{token}", %{form: %{password: password}})
 
     with :ok <- validate(conn.status == 302, conn) do
       conn = conn |> recycle() |> get(redirected_to(conn))
@@ -75,7 +75,7 @@ defmodule Demo.Test.Client do
   @spec login(Keyword.t() | map) :: {:ok | :error, Plug.Conn.t()}
   def login(params) do
     params = Map.merge(%{remember: "false"}, Map.new(params))
-    conn = post(build_conn(), "/login", %{user: params})
+    conn = post(build_conn(), "/login", %{form: params})
 
     if params.remember == "true" do
       %{"auth_token" => %{max_age: max_age, same_site: "Lax"}} = conn.resp_cookies
@@ -92,7 +92,7 @@ defmodule Demo.Test.Client do
   @spec start_password_reset(String.t()) ::
           {:ok, User.password_reset_token() | nil} | {:error, Plug.Conn.t()}
   def start_password_reset(email) do
-    conn = post(build_conn(), "/start_password_reset", %{user: %{email: email}})
+    conn = post(build_conn(), "/start_password_reset", %{form: %{email: email}})
     200 = conn.status
 
     if conn.resp_body =~ "The email with further instructions has been sent to #{email}",
@@ -113,7 +113,7 @@ defmodule Demo.Test.Client do
 
   @spec reset_password(User.password_reset_token(), String.t()) :: {:ok | :error, Plug.Conn.t()}
   def reset_password(token, password) do
-    conn = post(build_conn(), "/reset_password/#{token}", user: %{password: password})
+    conn = post(build_conn(), "/reset_password/#{token}", form: %{password: password})
 
     with :ok <- validate(conn.status == 302, conn) do
       conn = conn |> recycle() |> get(redirected_to(conn))

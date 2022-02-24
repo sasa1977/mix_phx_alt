@@ -7,7 +7,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
     test "form is rendered for a guest" do
       conn = get(build_conn(), "/start_password_reset")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_email" name="user[email]/
+      assert response =~ ~s/<input id="form_email" name="form[email]/
       refute response =~ "Log out"
     end
 
@@ -55,7 +55,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
       conn = get(build_conn(), "/reset_password/#{token}")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_password" name="user[password]/
+      assert response =~ ~s/<input id="form_password" name="form[password]/
       refute response =~ "Log out"
     end
 

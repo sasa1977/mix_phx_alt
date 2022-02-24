@@ -7,7 +7,7 @@ defmodule Demo.Interface.User.RegistrationTest do
     test "form is rendered for a guest" do
       conn = get(build_conn(), "/start_registration")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_email" name="user[email]/
+      assert response =~ ~s/<input id="form_email" name="form[email]/
       refute response =~ "Log out"
     end
 
@@ -47,7 +47,7 @@ defmodule Demo.Interface.User.RegistrationTest do
       token = ok!(start_registration(new_email()))
       conn = get(build_conn(), "/finish_registration/#{token}")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_password" name="user[password]/
+      assert response =~ ~s/<input id="form_password" name="form[password]/
       refute response =~ "Log out"
     end
 
