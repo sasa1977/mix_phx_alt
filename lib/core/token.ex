@@ -42,11 +42,10 @@ defmodule Demo.Core.Token do
 
   @spec fetch(value, Token.type()) :: {:ok, Token.t()} | :error
   def fetch(token, type) do
-    with {:ok, token_hash} <- hash(token),
+    with {:ok, hash} <- hash(token),
          token =
            Repo.one(
-             from token in valid_tokens_query(),
-               where: [hash: ^token_hash, type: ^type],
+             from token in valid_token_query(hash, type),
                left_join: user in assoc(token, :user),
                preload: [user: user]
            ),
@@ -56,8 +55,11 @@ defmodule Demo.Core.Token do
 
   @spec spend(value, Token.type()) :: {:ok, Token.t()} | :error
   def spend(token, type) do
-    fetch(token, type)
-    |> tap(&with {:ok, token} <- &1, do: Repo.delete(token))
+    # Using delete_all with select ensures we won't spend the same token twice.
+    with {:ok, hash} <- hash(token),
+         {count, tokens} = Repo.delete_all(select(valid_token_query(hash, type), [token], token)),
+         :ok <- validate(count == 1),
+         do: {:ok, Repo.preload(hd(tokens), :user)}
   end
 
   @spec delete(value, Token.type()) :: :ok
@@ -90,6 +92,9 @@ defmodule Demo.Core.Token do
 
   defp valid_tokens_query, do: from(token in Token, where: token_valid?(token))
   defp invalid_tokens_query, do: from(token in Token, where: not token_valid?(token))
+
+  defp valid_token_query(hash, type),
+    do: where(valid_tokens_query(), hash: ^hash, type: ^type)
 
   @doc false
   @spec child_spec(any) :: Supervisor.child_spec()
