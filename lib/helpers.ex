@@ -15,10 +15,7 @@ defmodule Demo.Helpers do
   def mix_env, do: Application.fetch_env!(:demo, :mix_env)
 
   @spec empty_changeset :: Ecto.Changeset.t()
-  def empty_changeset, do: changeset([])
-
-  @spec changeset(map | Keyword.t()) :: Ecto.Changeset.t()
-  def changeset(types), do: Ecto.Changeset.change({%{}, Map.new(types)})
+  def empty_changeset, do: Ecto.Changeset.change({%{}, %{}}, %{})
 
   @spec validate_field(Ecto.Changeset.t(), atom, (any -> String.t() | nil)) ::
           Ecto.Changeset.t()

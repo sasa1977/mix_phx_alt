@@ -15,7 +15,7 @@ defmodule Demo.Core.User do
           :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email, url_fun) do
     with {:ok, _} <-
-           changeset(email: :string)
+           {%{}, %{email: :string}}
            |> change(email: email)
            |> validate_email()
            |> apply_action(:insert) do
@@ -37,7 +37,7 @@ defmodule Demo.Core.User do
       with {:ok, token} <- Token.spend(token, :confirm_email),
            :ok <- validate(token.user == nil),
            {:ok, _} <-
-             changeset(password: :string)
+             {%{}, %{password: :string}}
              |> change(password: password)
              |> validate_password(:password)
              |> apply_action(:insert),
@@ -55,7 +55,7 @@ defmodule Demo.Core.User do
           :ok | {:error, Ecto.Changeset.t()}
   def start_email_change(user, email, password, url_fun) do
     with {:ok, _} <-
-           changeset(email: :string, password: :string)
+           {%{}, %{email: :string, password: :string}}
            |> change(email: email, password: password)
            |> validate_email()
            |> validate_field(:email, &if(&1 == user.email, do: "is the same"))
@@ -133,7 +133,7 @@ defmodule Demo.Core.User do
           :ok | {:error, Ecto.Changeset.t()}
   def start_password_reset(email, url_fun) do
     with {:ok, _} <-
-           changeset(email: :string)
+           {%{}, %{email: :string}}
            |> change(email: email)
            |> validate_email()
            |> apply_action(:update) do
@@ -158,7 +158,7 @@ defmodule Demo.Core.User do
     Repo.transact(fn ->
       with {:ok, token} <- Token.fetch(token, :password_reset),
            {:ok, _} <-
-             changeset(password: :string)
+             {%{}, %{password: :string}}
              |> change(password: password)
              |> validate_password(:password)
              |> apply_action(:update) do
@@ -178,7 +178,7 @@ defmodule Demo.Core.User do
           {:ok, auth_token} | {:error, Ecto.Changeset.t()}
   def change_password(user, current, new) do
     with {:ok, _} <-
-           changeset(current: :string, new: :string)
+           {%{}, %{current: :string, new: :string}}
            |> change(current: current, new: new)
            |> validate_password(:new)
            |> validate_field(:current, &unless(password_ok?(user, &1), do: "is invalid"))
@@ -214,7 +214,7 @@ defmodule Demo.Core.User do
         {:ok, user}
 
       {0, _} ->
-        changeset(current: :string)
+        {%{}, current: :string}
         |> add_error(:current, "is not valid")
         |> apply_action(:update)
     end
