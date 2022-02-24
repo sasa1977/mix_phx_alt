@@ -164,6 +164,10 @@ defmodule Demo.Core.User do
           |> change(password_hash: password_hash(password))
           |> Repo.update!()
 
+        # Since the password has been changed, we'll delete all other user's tokens. We're
+        # deliberately doing this outside of the transaction to make sure that login attempts with
+        # the old password won't succeed (since the hash update has been comitted at this point).
+        Token.delete_all(user)
         {:ok, Token.create(user, :auth)}
       end
     end)

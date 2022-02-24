@@ -77,6 +77,24 @@ defmodule Demo.Interface.User.PasswordResetTest do
       assert {:ok, _} = login(%{registration_params | password: new_password})
     end
 
+    test "deletes all other tokens" do
+      params = valid_registration_params()
+      register!(params)
+
+      # create other tokens
+      ok!(login(params))
+      ok!(login(Map.put(params, :remember, "true")))
+      ok!(start_password_reset(params.email))
+
+      start_password_reset(params.email)
+      |> ok!()
+      |> reset_password(new_password())
+      |> ok!()
+
+      # there should be just one token (created during the password change)
+      assert Demo.Core.Repo.aggregate(Demo.Core.Model.Token, :count) == 1
+    end
+
     test "fails for invalid token" do
       # malformed token
       assert {:error, conn} = reset_password("invalid_token", new_password())
