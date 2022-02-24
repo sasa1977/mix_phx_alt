@@ -45,10 +45,10 @@ defmodule Demo.Core.User do
              %User{}
              |> change_email(Map.fetch!(token.payload, "email"))
              |> change(password_hash: password_hash(password))
-             |> Repo.insert(),
+             |> Repo.insert()
+             |> anonymize_email_exists_error(),
            do: {:ok, Token.create(user, :auth)}
     end)
-    |> anonymize_email_exists_error()
   end
 
   @spec start_email_change(User.t(), String.t(), String.t(), url_builder(confirm_email_token)) ::
@@ -72,25 +72,22 @@ defmodule Demo.Core.User do
 
   @spec change_email(confirm_email_token) :: {:ok, auth_token} | :error
   def change_email(token) do
-    Repo.transact(fn ->
-      with {:ok, token} <- Token.spend(token, :confirm_email),
-           :ok <- validate(token.user != nil) do
-        token.user
-        |> change_email(Map.fetch!(token.payload, "email"))
-        |> Repo.update()
-      end
-    end)
-    |> then(
-      &with {:ok, user} <- &1 do
-        # Since the email has been changed, we'll delete all other user's tokens. We're
-        # deliberately doing this outside of the transaction to make sure that login attempts with
-        # the old email won't succeed (since the hash update has been comitted at this point).
-
-        Token.delete_all(user)
-        {:ok, Token.create(user, :auth)}
-      end
-    )
-    |> anonymize_email_exists_error()
+    with {:ok, user} <-
+           Repo.transact(fn ->
+             with {:ok, token} <- Token.spend(token, :confirm_email),
+                  :ok <- validate(token.user != nil) do
+               token.user
+               |> change_email(Map.fetch!(token.payload, "email"))
+               |> Repo.update()
+               |> anonymize_email_exists_error()
+             end
+           end) do
+      # Since the email has been changed, we'll delete all other user's tokens. We're
+      # deliberately doing this outside of the transaction to make sure that login attempts with
+      # the old email won't succeed (since the hash update has been comitted at this point).
+      Token.delete_all(user)
+      {:ok, Token.create(user, :auth)}
+    end
   end
 
   defp create_email_confirmation(user \\ nil, email, subject, body_fun) do
