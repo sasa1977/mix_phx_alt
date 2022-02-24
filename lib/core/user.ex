@@ -153,7 +153,7 @@ defmodule Demo.Core.User do
           {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
   def reset_password(token, password) do
     Repo.transact(fn ->
-      with {:ok, token} <- Token.fetch(token, :password_reset),
+      with {:ok, token} <- Token.spend(token, :password_reset),
            {:ok, _} <-
              {%{}, %{password: :string}}
              |> change(password: password)
@@ -164,8 +164,6 @@ defmodule Demo.Core.User do
           |> change(password_hash: password_hash(password))
           |> Repo.update!()
 
-        # delete the token so it can't be used again
-        Repo.delete(token)
         {:ok, Token.create(user, :auth)}
       end
     end)
@@ -174,19 +172,25 @@ defmodule Demo.Core.User do
   @spec change_password(User.t(), String.t(), String.t()) ::
           {:ok, auth_token} | {:error, Ecto.Changeset.t()}
   def change_password(user, current, new) do
-    with {:ok, _} <-
-           {%{}, %{current: :string, new: :string}}
-           |> change(current: current, new: new)
-           |> validate_password(:new)
-           |> validate_field(:current, &unless(password_ok?(user, &1), do: "is invalid"))
-           |> apply_action(:update),
-         {:ok, user} <- safe_update_password_hash(user, password_hash(new)) do
-      # Since the password has been changed, we'll delete all other user's tokens. We're
-      # deliberately doing this outside of the transaction to make sure that login attempts with
-      # the old password won't succeed (since the hash update has been comitted at this point).
-      Token.delete_all(user)
-      {:ok, Token.create(user, :auth)}
-    end
+    Repo.transact(fn ->
+      # refreshing the user and locking it, to ensure we're checking the latest password
+      user = Repo.one!(from User, where: [id: ^user.id], lock: "FOR UPDATE")
+
+      with {:ok, _} <-
+             {%{}, %{current: :string, new: :string}}
+             |> change(current: current, new: new)
+             |> validate_password(:new)
+             |> validate_field(:current, &unless(password_ok?(user, &1), do: "is invalid"))
+             |> apply_action(:update) do
+        user = user |> change(password_hash: password_hash(new)) |> Repo.update!()
+
+        # Since the password has been changed, we'll delete all other user's tokens. We're
+        # deliberately doing this outside of the transaction to make sure that login attempts with
+        # the old password won't succeed (since the hash update has been comitted at this point).
+        Token.delete_all(user)
+        {:ok, Token.create(user, :auth)}
+      end
+    end)
   end
 
   defp password_ok?(user, password) do
@@ -196,26 +200,6 @@ defmodule Demo.Core.User do
   end
 
   defp password_hash(password), do: Bcrypt.hash_pwd_salt(password)
-
-  defp safe_update_password_hash(user, new_password_hash) do
-    # Using update_all and filtering by password hash to make sure that the password hasn't
-    # been changed after the user has been loaded from the database.
-    case Repo.update_all(
-           from(user in User,
-             where: [id: ^user.id, password_hash: ^user.password_hash],
-             select: user
-           ),
-           set: [password_hash: new_password_hash]
-         ) do
-      {1, [user]} ->
-        {:ok, user}
-
-      {0, _} ->
-        {%{}, current: :string}
-        |> add_error(:current, "is not valid")
-        |> apply_action(:update)
-    end
-  end
 
   defp validate_email(changeset) do
     changeset
