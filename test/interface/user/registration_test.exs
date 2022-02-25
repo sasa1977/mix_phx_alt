@@ -7,7 +7,7 @@ defmodule Demo.Interface.User.RegistrationTest do
     test "form is rendered for a guest" do
       conn = get(build_conn(), "/start_registration")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_email" name="user[email]/
+      assert response =~ ~s/<input id="form_email" name="form[email]/
       refute response =~ "Log out"
     end
 
@@ -47,7 +47,7 @@ defmodule Demo.Interface.User.RegistrationTest do
       token = ok!(start_registration(new_email()))
       conn = get(build_conn(), "/finish_registration/#{token}")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_password" name="user[password]/
+      assert response =~ ~s/<input id="form_password" name="form[password]/
       refute response =~ "Log out"
     end
 
@@ -77,10 +77,10 @@ defmodule Demo.Interface.User.RegistrationTest do
       assert "can't be blank" in errors(conn, :password)
 
       assert {:error, conn} = finish_registration(token, "12345678901")
-      assert "should be at least 12 characters" in errors(conn, :password)
+      assert "should be at least 12 character(s)" in errors(conn, :password)
 
       assert {:error, conn} = finish_registration(token, String.duplicate("1", 73))
-      assert "should be at most 72 characters" in errors(conn, :password)
+      assert "should be at most 72 character(s)" in errors(conn, :password)
     end
 
     test "fails for invalid token" do

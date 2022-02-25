@@ -5,8 +5,18 @@ defmodule Demo.Interface.User.Controller do
 
   import Demo.Helpers
 
-  alias Demo.Core.User
+  alias Demo.Core.{Token, User}
   alias Demo.Interface.User.Auth
+
+  plug :require_anonymous
+       when action in ~w/
+        start_registration_form start_registration
+        finish_registration_form finish_registration
+        login_form login
+        start_password_reset_form start_password_reset/a
+
+  plug :require_user
+       when action in ~w/welcome logout settings change_password start_email_change/a
 
   def welcome(conn, _params), do: render(conn, :welcome)
 
@@ -17,7 +27,7 @@ defmodule Demo.Interface.User.Controller do
   def start_registration_form(conn, _params),
     do: render(conn, :start_registration, changeset: empty_changeset())
 
-  def start_registration(conn, %{"user" => %{"email" => email}}) do
+  def start_registration(conn, %{"form" => %{"email" => email}}) do
     case User.start_registration(email, &Routes.user_url(conn, :finish_registration_form, &1)) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_registration, changeset: changeset)
@@ -25,13 +35,12 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def finish_registration_form(conn, %{"token" => token}) do
-    case User.validate_token(token, :confirm_email) do
-      :ok -> render(conn, :finish_registration, token: token, changeset: empty_changeset())
-      :error -> {:error, :not_found}
-    end
+    if Token.valid?(token, :confirm_email),
+      do: render(conn, :finish_registration, token: token, changeset: empty_changeset()),
+      else: {:error, :not_found}
   end
 
-  def finish_registration(conn, %{"token" => token, "user" => %{"password" => password}}) do
+  def finish_registration(conn, %{"token" => token, "form" => %{"password" => password}}) do
     case User.finish_registration(token, password) do
       {:ok, token} ->
         conn |> put_flash(:info, "User activated successfully.") |> on_authenticated(token)
@@ -51,8 +60,8 @@ defmodule Demo.Interface.User.Controller do
   def login_form(conn, _params),
     do: render(conn, :login, error_message: nil)
 
-  def login(conn, %{"user" => user}) do
-    %{"email" => email, "password" => password, "remember" => remember?} = user
+  def login(conn, %{"form" => form}) do
+    %{"email" => email, "password" => password, "remember" => remember?} = form
 
     case User.login(email, password) do
       {:ok, token} -> on_authenticated(conn, token, remember?: remember? == "true")
@@ -61,7 +70,7 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def logout(conn, _params) do
-    User.logout(Auth.token(conn))
+    Token.delete(Auth.token(conn), :auth)
 
     conn
     |> Auth.clear()
@@ -128,7 +137,7 @@ defmodule Demo.Interface.User.Controller do
   def start_password_reset_form(conn, _params),
     do: render(conn, :start_password_reset, changeset: empty_changeset())
 
-  def start_password_reset(conn, %{"user" => %{"email" => email}}) do
+  def start_password_reset(conn, %{"form" => %{"email" => email}}) do
     case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
@@ -136,13 +145,12 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def reset_password_form(conn, %{"token" => token}) do
-    case User.validate_token(token, :password_reset) do
-      :ok -> render(conn, :reset_password, changeset: empty_changeset(), token: token)
-      :error -> {:error, :not_found}
-    end
+    if Token.valid?(token, :password_reset),
+      do: render(conn, :reset_password, changeset: empty_changeset(), token: token),
+      else: {:error, :not_found}
   end
 
-  def reset_password(conn, %{"token" => token, "user" => %{"password" => password}}) do
+  def reset_password(conn, %{"token" => token, "form" => %{"password" => password}}) do
     case User.reset_password(token, password) do
       {:ok, token} ->
         conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)

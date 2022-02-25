@@ -1,6 +1,6 @@
 <h1>Activate your account</h1>
 
-<.form let={f} for={@changeset} action={Routes.user_path(@conn, :finish_registration, @token)} as={:user}>
+<.form let={f} for={@changeset} action={Routes.user_path(@conn, :finish_registration, @token)} as={:form}>
   <%= if @changeset.action do %>
     <div class="alert alert-danger">
       <p>Oops, something went wrong! Please check the errors below.</p>

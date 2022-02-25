@@ -7,6 +7,18 @@ defmodule Demo.Interface.User.AuthenticationTest do
   alias Demo.Core.{Model, Repo}
 
   describe "login" do
+    test "form is rendered for a guest" do
+      conn = get(build_conn(), "/login")
+      response = html_response(conn, 200)
+      assert response =~ ~s/<input id="form_email" name="form[email]/
+      assert response =~ ~s/<input id="form_password" name="form[password]/
+    end
+
+    test "form redirects if the user is authenticated" do
+      conn = register!() |> recycle() |> get("/login")
+      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
+    end
+
     test "succeeds with valid input" do
       params = valid_registration_params()
       register!(params)
@@ -108,8 +120,8 @@ defmodule Demo.Interface.User.AuthenticationTest do
     conn1 = register!()
     token1 = ok!(start_registration(new_email()))
 
-    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.User.TokenCleanup)
-    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.User.TokenCleanup)
+    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), Demo.Core.Token.Cleanup)
+    {:ok, :normal} = Periodic.Test.sync_tick(Demo.Core.Token.Cleanup)
 
     assert Repo.aggregate(Model.Token, :count) == 2
 

@@ -7,7 +7,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
     test "form is rendered for a guest" do
       conn = get(build_conn(), "/start_password_reset")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_email" name="user[email]/
+      assert response =~ ~s/<input id="form_email" name="form[email]/
       refute response =~ "Log out"
     end
 
@@ -55,18 +55,13 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
       conn = get(build_conn(), "/reset_password/#{token}")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="user_password" name="user[password]/
+      assert response =~ ~s/<input id="form_password" name="form[password]/
       refute response =~ "Log out"
     end
 
     test "form returns 404 if the token is invalid" do
       conn = get(build_conn(), "/reset_password/invalid_token")
       assert conn.status == 404
-    end
-
-    test "form redirects if the user is authenticated" do
-      conn = register!() |> recycle() |> get("/reset_password/some_token")
-      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
     end
 
     test "succeeds with valid token" do
@@ -80,6 +75,24 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
       assert {:error, _} = login(registration_params)
       assert {:ok, _} = login(%{registration_params | password: new_password})
+    end
+
+    test "deletes all other tokens" do
+      params = valid_registration_params()
+      register!(params)
+
+      # create other tokens
+      ok!(login(params))
+      ok!(login(Map.put(params, :remember, "true")))
+      ok!(start_password_reset(params.email))
+
+      start_password_reset(params.email)
+      |> ok!()
+      |> reset_password(new_password())
+      |> ok!()
+
+      # there should be just one token (created during the password change)
+      assert Demo.Core.Repo.aggregate(Demo.Core.Model.Token, :count) == 1
     end
 
     test "fails for invalid token" do
@@ -127,10 +140,10 @@ defmodule Demo.Interface.User.PasswordResetTest do
       assert "can't be blank" in errors(conn, :password)
 
       assert {:error, conn} = reset_password(token, "12345678901")
-      assert "should be at least 12 characters" in errors(conn, :password)
+      assert "should be at least 12 character(s)" in errors(conn, :password)
 
       assert {:error, conn} = reset_password(token, String.duplicate("1", 73))
-      assert "should be at most 72 characters" in errors(conn, :password)
+      assert "should be at most 72 character(s)" in errors(conn, :password)
     end
   end
 
