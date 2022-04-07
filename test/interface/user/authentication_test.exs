@@ -99,7 +99,7 @@ defmodule Demo.Interface.User.AuthenticationTest do
     register!(registration_params)
 
     logged_in_conn = ok!(login(Map.put(registration_params, :remember, "true")))
-    logged_out_conn = logged_in_conn |> recycle() |> delete("/logout")
+    logged_out_conn = logged_in_conn |> recycle() |> post("/logout")
 
     assert redirected_to(logged_out_conn) == Routes.user_path(logged_out_conn, :login_form)
 

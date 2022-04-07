@@ -16,7 +16,7 @@
           <ul>
             <%= if @current_user do %>
               <li><%= link "Settings", to: Routes.user_path(@conn, :settings) %></li>
-              <li><%= link "Log out", to: Routes.user_path(@conn, :logout), method: :delete %></li>
+              <li><%= link "Log out", to: Routes.user_path(@conn, :logout), method: :post %></li>
             <% end %>
 
             <%= if function_exported?(Routes, :live_dashboard_path, 2) do %>
