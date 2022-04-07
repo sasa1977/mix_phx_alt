@@ -48,7 +48,7 @@ defmodule Demo.Interface.User.Controller do
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :finish_registration, token: token, changeset: changeset)
 
-      :error ->
+      {:error, :invalid_token} ->
         {:error, :not_found}
     end
   end
@@ -120,7 +120,7 @@ defmodule Demo.Interface.User.Controller do
       {:ok, token} ->
         conn |> put_flash(:info, "Email changed successfully.") |> on_authenticated(token)
 
-      :error ->
+      {:error, :invalid_token} ->
         {:error, :not_found}
     end
   end
@@ -158,7 +158,7 @@ defmodule Demo.Interface.User.Controller do
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :reset_password, changeset: changeset, token: token)
 
-      :error ->
+      {:error, :invalid_token} ->
         {:error, :not_found}
     end
   end

@@ -31,11 +31,11 @@ defmodule Demo.Core.User do
   end
 
   @spec finish_registration(confirm_email_token, String.t()) ::
-          {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
+          {:ok, auth_token} | {:error, :invalid_token | Ecto.Changeset.t()}
   def finish_registration(token, password) do
     Repo.transact(fn ->
       with {:ok, token} <- Token.spend(token, :confirm_email),
-           :ok <- validate(token.user == nil),
+           :ok <- validate(token.user == nil, :invalid_token),
            {:ok, _} <-
              {%{}, %{password: :string}}
              |> change(password: password)
@@ -70,12 +70,12 @@ defmodule Demo.Core.User do
     end
   end
 
-  @spec change_email(confirm_email_token) :: {:ok, auth_token} | :error
+  @spec change_email(confirm_email_token) :: {:ok, auth_token} | {:error, :invalid_token}
   def change_email(token) do
     with {:ok, user} <-
            Repo.transact(fn ->
              with {:ok, token} <- Token.spend(token, :confirm_email),
-                  :ok <- validate(token.user != nil) do
+                  :ok <- validate(token.user != nil, :invalid_token) do
                token.user
                |> change_email(Map.fetch!(token.payload, "email"))
                |> Repo.update()
@@ -113,7 +113,7 @@ defmodule Demo.Core.User do
   defp anonymize_email_exists_error(outcome) do
     with {:error, %Ecto.Changeset{errors: errors}} <- outcome,
          {"has already been taken", _} <- Keyword.get(errors, :email),
-         do: :error,
+         do: {:error, :invalid_token},
          else: (_ -> outcome)
   end
 
@@ -150,7 +150,7 @@ defmodule Demo.Core.User do
   end
 
   @spec reset_password(password_reset_token, String.t()) ::
-          {:ok, auth_token} | :error | {:error, Ecto.Changeset.t()}
+          {:ok, auth_token} | {:error, :invalid_token | Ecto.Changeset.t()}
   def reset_password(token, password) do
     Repo.transact(fn ->
       with {:ok, token} <- Token.spend(token, :password_reset),
