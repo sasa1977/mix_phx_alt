@@ -152,49 +152,49 @@ defmodule Demo.Core.User do
   @spec reset_password(password_reset_token, String.t()) ::
           {:ok, auth_token} | {:error, :invalid_token | Ecto.Changeset.t()}
   def reset_password(token, password) do
-    Repo.transact(fn ->
-      with {:ok, token} <- Token.spend(token, :password_reset),
-           {:ok, _} <-
-             {%{}, %{password: :string}}
-             |> change(password: password)
-             |> validate_password(:password)
-             |> apply_action(:update) do
-        user =
-          token.user
-          |> change(password_hash: password_hash(password))
-          |> Repo.update!()
-
-        # Since the password has been changed, we'll delete all other user's tokens. We're
-        # deliberately doing this outside of the transaction to make sure that login attempts with
-        # the old password won't succeed (since the hash update has been comitted at this point).
-        Token.delete_all(user)
-        {:ok, Token.create(user, :auth)}
-      end
-    end)
+    with {:ok, user} <-
+           Repo.transact(fn ->
+             with {:ok, token} <- Token.spend(token, :password_reset),
+                  {:ok, _} <-
+                    {%{}, %{password: :string}}
+                    |> change(password: password)
+                    |> validate_password(:password)
+                    |> apply_action(:update) do
+               token.user
+               |> change(password_hash: password_hash(password))
+               |> Repo.update()
+             end
+           end) do
+      # Since the password has been changed, we'll delete all other user's tokens. We're
+      # deliberately doing this outside of the transaction to make sure that login attempts with
+      # the old password won't succeed (since the hash update has been comitted at this point).
+      Token.delete_all(user)
+      {:ok, Token.create(user, :auth)}
+    end
   end
 
   @spec change_password(User.t(), String.t(), String.t()) ::
           {:ok, auth_token} | {:error, Ecto.Changeset.t()}
   def change_password(user, current, new) do
-    Repo.transact(fn ->
-      # refreshing the user and locking it, to ensure we're checking the latest password
-      user = Repo.one!(from User, where: [id: ^user.id], lock: "FOR UPDATE")
+    with {:ok, user} <-
+           Repo.transact(fn ->
+             # refreshing the user and locking it, to ensure we're checking the latest password
+             user = Repo.one!(from User, where: [id: ^user.id], lock: "FOR UPDATE")
 
-      with {:ok, _} <-
-             {%{}, %{current: :string, new: :string}}
-             |> change(current: current, new: new)
-             |> validate_password(:new)
-             |> validate_field(:current, &unless(password_ok?(user, &1), do: "is invalid"))
-             |> apply_action(:update) do
-        user = user |> change(password_hash: password_hash(new)) |> Repo.update!()
-
-        # Since the password has been changed, we'll delete all other user's tokens. We're
-        # deliberately doing this outside of the transaction to make sure that login attempts with
-        # the old password won't succeed (since the hash update has been comitted at this point).
-        Token.delete_all(user)
-        {:ok, Token.create(user, :auth)}
-      end
-    end)
+             with {:ok, _} <-
+                    {%{}, %{current: :string, new: :string}}
+                    |> change(current: current, new: new)
+                    |> validate_password(:new)
+                    |> validate_field(:current, &unless(password_ok?(user, &1), do: "is invalid"))
+                    |> apply_action(:update),
+                  do: user |> change(password_hash: password_hash(new)) |> Repo.update()
+           end) do
+      # Since the password has been changed, we'll delete all other user's tokens. We're
+      # deliberately doing this outside of the transaction to make sure that login attempts with
+      # the old password won't succeed (since the hash update has been comitted at this point).
+      Token.delete_all(user)
+      {:ok, Token.create(user, :auth)}
+    end
   end
 
   defp password_ok?(user, password) do
