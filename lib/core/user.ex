@@ -36,15 +36,10 @@ defmodule Demo.Core.User do
     Repo.transact(fn ->
       with {:ok, token} <- Token.spend(token, :confirm_email),
            :ok <- validate(token.user == nil, :invalid_token),
-           {:ok, _} <-
-             {%{}, %{password: :string}}
-             |> change(password: password)
-             |> validate_password(:password)
-             |> apply_action(:insert),
            {:ok, user} <-
              %User{}
              |> change_email(Map.fetch!(token.payload, "email"))
-             |> change(password_hash: password_hash(password))
+             |> set_password(password)
              |> Repo.insert()
              |> anonymize_email_exists_error(),
            do: {:ok, Token.create(user, :auth)}
@@ -155,15 +150,7 @@ defmodule Demo.Core.User do
     with {:ok, user} <-
            Repo.transact(fn ->
              with {:ok, token} <- Token.spend(token, :password_reset),
-                  {:ok, _} <-
-                    {%{}, %{password: :string}}
-                    |> change(password: password)
-                    |> validate_password(:password)
-                    |> apply_action(:update) do
-               token.user
-               |> change(password_hash: password_hash(password))
-               |> Repo.update()
-             end
+                  do: token.user |> set_password(password) |> Repo.update()
            end) do
       # Since the password has been changed, we'll delete all other user's tokens. We're
       # deliberately doing this outside of the transaction to make sure that login attempts with
@@ -179,15 +166,15 @@ defmodule Demo.Core.User do
     with {:ok, user} <-
            Repo.transact(fn ->
              # refreshing the user and locking it, to ensure we're checking the latest password
-             user = Repo.one!(from User, where: [id: ^user.id], lock: "FOR UPDATE")
-
-             with {:ok, _} <-
-                    {%{}, %{current: :string, new: :string}}
-                    |> change(current: current, new: new)
-                    |> validate_password(:new)
-                    |> validate_field(:current, &unless(password_ok?(user, &1), do: "is invalid"))
-                    |> apply_action(:update),
-                  do: user |> change(password_hash: password_hash(new)) |> Repo.update()
+             Repo.one!(from User, where: [id: ^user.id], lock: "FOR UPDATE")
+             |> change()
+             |> then(fn changeset ->
+               if password_ok?(user, current),
+                 do: changeset,
+                 else: add_error(changeset, :current, "is invalid")
+             end)
+             |> set_password(new, error_as: :new)
+             |> Repo.update()
            end) do
       # Since the password has been changed, we'll delete all other user's tokens. We're
       # deliberately doing this outside of the transaction to make sure that login attempts with
@@ -212,11 +199,27 @@ defmodule Demo.Core.User do
     |> validate_length(:email, max: 160)
   end
 
-  defp validate_password(changeset, field_name) do
+  defp set_password(user_schema_or_changeset, value, opts \\ []) do
+    error_field = Keyword.get(opts, :error_as, :password)
     min_length = if(Demo.Helpers.mix_env() == :dev, do: 4, else: 12)
 
-    changeset
-    |> validate_required(field_name)
-    |> validate_length(field_name, min: min_length, max: 72)
+    {%{}, %{error_field => :string}}
+    |> change([{error_field, value}])
+    |> validate_required(error_field)
+    |> validate_length(error_field, min: min_length, max: 72)
+    |> apply_action(:insert)
+    |> case do
+      {:ok, _} ->
+        change(user_schema_or_changeset, password_hash: password_hash(value))
+
+      {:error, error_changeset} ->
+        Enum.reduce(
+          error_changeset.errors,
+          change(user_schema_or_changeset),
+          fn {field, {error, keys}}, changeset ->
+            Ecto.Changeset.add_error(changeset, field, error, keys)
+          end
+        )
+    end
   end
 end
