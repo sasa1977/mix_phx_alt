@@ -2,7 +2,6 @@ defmodule Demo.Interface.User.AuthenticationTest do
   use Demo.Test.ConnCase, async: true
 
   import Demo.Test.Client
-  import Ecto.Query
 
   alias Demo.Core.{Model, Repo}
 
