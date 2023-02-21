@@ -20,7 +20,6 @@ defmodule Demo.Interface.Router do
     plug :accepts, ["json"]
   end
 
-  # anonymous routes
   scope "/", Demo.Interface do
     pipe_through [:browser]
 
