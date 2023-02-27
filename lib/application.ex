@@ -8,7 +8,7 @@ defmodule Demo.Application do
 
     Supervisor.start_link(
       [
-        {Demo.Core, public_url: Demo.Interface.PublicUrl},
+        {Demo.Core, url_builder: Demo.Interface.UrlBuilder},
         Demo.Interface
       ],
       strategy: :one_for_one,

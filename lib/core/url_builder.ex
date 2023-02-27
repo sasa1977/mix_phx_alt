@@ -1,4 +1,4 @@
-defmodule Demo.Core.PublicUrl do
+defmodule Demo.Core.UrlBuilder do
   alias Demo.Core.User
 
   @type t :: String.t()

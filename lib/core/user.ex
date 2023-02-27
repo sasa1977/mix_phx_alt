@@ -3,7 +3,7 @@ defmodule Demo.Core.User do
   import Ecto.Changeset
   import Ecto.Query
 
-  alias Demo.Core.{Model.User, PublicUrl, Repo, Token}
+  alias Demo.Core.{Model.User, Repo, Token, UrlBuilder}
 
   @type confirm_email_token :: Token.value()
   @type auth_token :: Token.value()
@@ -22,7 +22,7 @@ defmodule Demo.Core.User do
       create_email_confirmation(
         email,
         "Registration",
-        &"To create the account visit #{PublicUrl.finish_registration_form(&1)}"
+        &"To create the account visit #{UrlBuilder.finish_registration_form(&1)}"
       )
     end
   end
@@ -57,7 +57,7 @@ defmodule Demo.Core.User do
         user,
         email,
         "Confirm email change",
-        &"To use this email address click the following url:\n#{PublicUrl.change_email(&1)}"
+        &"To use this email address click the following url:\n#{UrlBuilder.change_email(&1)}"
       )
     end
   end
@@ -131,7 +131,7 @@ defmodule Demo.Core.User do
         Demo.Core.Mailer.send(
           email,
           "Password reset",
-          "You can reset the password at the following url:\n#{PublicUrl.reset_password_form(token)}"
+          "You can reset the password at the following url:\n#{UrlBuilder.reset_password_form(token)}"
         )
       end
 

@@ -1,11 +1,11 @@
 defmodule Demo.Core do
   use Boundary,
     deps: [Demo.{Config, Helpers}],
-    exports: [PublicUrl, User, Token, {Model, except: [Base]}]
+    exports: [UrlBuilder, User, Token, {Model, except: [Base]}]
 
-  @spec start_link(public_url: module) :: Supervisor.on_start()
+  @spec start_link(url_builder: module) :: Supervisor.on_start()
   def start_link(opts) do
-    Demo.Core.PublicUrl.configure(Keyword.fetch!(opts, :public_url))
+    Demo.Core.UrlBuilder.configure(Keyword.fetch!(opts, :url_builder))
 
     Supervisor.start_link(
       [

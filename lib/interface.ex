@@ -1,6 +1,6 @@
 defmodule Demo.Interface do
   use Boundary,
-    exports: [Endpoint, PublicUrl],
+    exports: [Endpoint, UrlBuilder],
     deps: [Demo.{Core, Config, Helpers}]
 
   @spec start_link :: Supervisor.on_start()
