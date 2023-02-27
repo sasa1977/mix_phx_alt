@@ -104,12 +104,7 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def start_email_change(conn, %{"change_email" => %{"email" => email, "password" => password}}) do
-    case User.start_email_change(
-           conn.assigns.current_user,
-           email,
-           password,
-           &Routes.user_url(conn, :change_email, &1)
-         ) do
+    case User.start_email_change(conn.assigns.current_user, email, password) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render_form(conn, email_changeset: changeset)
     end

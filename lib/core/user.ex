@@ -45,9 +45,9 @@ defmodule Demo.Core.User do
     end)
   end
 
-  @spec start_email_change(User.t(), String.t(), String.t(), url_builder(confirm_email_token)) ::
+  @spec start_email_change(User.t(), String.t(), String.t()) ::
           :ok | {:error, Ecto.Changeset.t()}
-  def start_email_change(user, email, password, url_fun) do
+  def start_email_change(user, email, password) do
     with {:ok, _} <-
            {%{}, %{email: :string, password: :string}}
            |> change(email: email, password: password)
@@ -59,7 +59,7 @@ defmodule Demo.Core.User do
         user,
         email,
         "Confirm email change",
-        &"To use this email address click the following url:\n#{url_fun.(&1)}"
+        &"To use this email address click the following url:\n#{PublicUrl.change_email(&1)}"
       )
     end
   end
