@@ -9,8 +9,6 @@ defmodule Demo.Core.User do
   @type auth_token :: Token.value()
   @type password_reset_token :: Token.value()
 
-  @type url_builder(arg) :: (arg -> url :: String.t())
-
   @spec start_registration(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email) do
     with {:ok, _} <-
@@ -24,7 +22,7 @@ defmodule Demo.Core.User do
       create_email_confirmation(
         email,
         "Registration",
-        &"To create the account visit #{PublicUrl.finish_registration(&1)}"
+        &"To create the account visit #{PublicUrl.finish_registration_form(&1)}"
       )
     end
   end
@@ -133,7 +131,7 @@ defmodule Demo.Core.User do
         Demo.Core.Mailer.send(
           email,
           "Password reset",
-          "You can reset the password at the following url:\n#{PublicUrl.reset_password(token)}"
+          "You can reset the password at the following url:\n#{PublicUrl.reset_password_form(token)}"
         )
       end
 
