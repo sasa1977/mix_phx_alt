@@ -20,7 +20,6 @@ defmodule Demo.Interface.Router do
     plug :accepts, ["json"]
   end
 
-  # anonymous routes
   scope "/", Demo.Interface do
     pipe_through [:browser]
 
@@ -35,7 +34,7 @@ defmodule Demo.Interface.Router do
     # login/logout
     get "/login", User.Controller, :login_form, as: :user
     post "/login", User.Controller, :login, as: :user
-    delete "/logout", User.Controller, :logout, as: :user
+    post "/logout", User.Controller, :logout, as: :user
 
     # password reset
     get "/start_password_reset", User.Controller, :start_password_reset_form, as: :user

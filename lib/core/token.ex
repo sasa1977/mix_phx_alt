@@ -53,13 +53,14 @@ defmodule Demo.Core.Token do
          do: {:ok, token}
   end
 
-  @spec spend(value, Token.type()) :: {:ok, Token.t()} | :error
+  @spec spend(value, Token.type()) :: {:ok, Token.t()} | {:error, :invalid_token}
   def spend(token, type) do
     # Using delete_all with select ensures we won't spend the same token twice.
     with {:ok, hash} <- hash(token),
          {count, tokens} = Repo.delete_all(select(valid_token_query(hash, type), [token], token)),
          :ok <- validate(count == 1),
-         do: {:ok, Repo.preload(hd(tokens), :user)}
+         do: {:ok, Repo.preload(hd(tokens), :user)},
+         else: (_ -> {:error, :invalid_token})
   end
 
   @spec delete(value, Token.type()) :: :ok
@@ -79,22 +80,25 @@ defmodule Demo.Core.Token do
          do: {:ok, :crypto.hash(:sha256, token_bytes)}
   end
 
-  defmacrop token_valid?(token) do
-    Token.validities()
-    |> Enum.map(fn {type, validity} ->
-      quote do
-        unquote(token).type == unquote(type) and
-          unquote(token).inserted_at > ago(unquote(validity), "day")
-      end
-    end)
-    |> Enum.reduce(&quote(do: unquote(&2) or unquote(&1)))
-  end
+  defp valid_tokens_query, do: filter_tokens(&not_expired_filter/1)
+  defp invalid_tokens_query, do: filter_tokens(&expired_filter/1)
 
-  defp valid_tokens_query, do: from(token in Token, where: token_valid?(token))
-  defp invalid_tokens_query, do: from(token in Token, where: not token_valid?(token))
+  defp not_expired_filter(validity), do: dynamic(not (^expired_filter(validity)))
+  defp expired_filter(validity), do: dynamic([token], token.inserted_at < ago(^validity, "day"))
 
   defp valid_token_query(hash, type),
     do: where(valid_tokens_query(), hash: ^hash, type: ^type)
+
+  defp filter_tokens(filter_fun) do
+    Token.validities()
+    |> Enum.reduce(
+      dynamic(false),
+      fn {type, validity}, dynamic ->
+        dynamic([token], ^dynamic or (token.type == ^type and ^filter_fun.(validity)))
+      end
+    )
+    |> then(&where(Token, ^&1))
+  end
 
   @doc false
   @spec child_spec(any) :: Supervisor.child_spec()

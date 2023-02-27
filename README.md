@@ -26,3 +26,14 @@
         mix demo.gen.default_prod_config
         docker build . -t demo
         docker run --rm -it --net=host demo
+
+
+## Starting a new project
+
+1. `git clone git@github.com:sasa1977/mix_phx_alt`
+2. `git remote rm origin`
+3. Case-sensitive replace `Demo` with `YourProjectName`
+4. Case-sensitive replace `demo` with `your_project_name`
+5. Review `LICENSE.md`, adapt or remove it, if necessary
+6. Remove this section from `README.md`
+7. Proceed with the instructions in the [local development section](#local-development)
