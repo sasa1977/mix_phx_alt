@@ -7,7 +7,10 @@ defmodule Demo.Application do
     validate_config()
 
     Supervisor.start_link(
-      [Demo.Core, Demo.Interface],
+      [
+        {Demo.Core, url_builder: Demo.Interface.UrlBuilder},
+        Demo.Interface
+      ],
       strategy: :one_for_one,
       name: __MODULE__
     )

@@ -28,7 +28,7 @@ defmodule Demo.Interface.User.Controller do
     do: render(conn, :start_registration, changeset: empty_changeset())
 
   def start_registration(conn, %{"form" => %{"email" => email}}) do
-    case User.start_registration(email, &Routes.user_url(conn, :finish_registration_form, &1)) do
+    case User.start_registration(email) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_registration, changeset: changeset)
     end
@@ -104,12 +104,7 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def start_email_change(conn, %{"change_email" => %{"email" => email, "password" => password}}) do
-    case User.start_email_change(
-           conn.assigns.current_user,
-           email,
-           password,
-           &Routes.user_url(conn, :change_email, &1)
-         ) do
+    case User.start_email_change(conn.assigns.current_user, email, password) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render_form(conn, email_changeset: changeset)
     end
@@ -138,7 +133,7 @@ defmodule Demo.Interface.User.Controller do
     do: render(conn, :start_password_reset, changeset: empty_changeset())
 
   def start_password_reset(conn, %{"form" => %{"email" => email}}) do
-    case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
+    case User.start_password_reset(email) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
     end
