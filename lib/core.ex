@@ -1,8 +1,12 @@
 defmodule Demo.Core do
-  use Boundary, deps: [Demo.{Config, Helpers}], exports: [User, Token, {Model, except: [Base]}]
+  use Boundary,
+    deps: [Demo.{Config, Helpers}],
+    exports: [PublicUrl, User, Token, {Model, except: [Base]}]
 
-  @spec start_link :: Supervisor.on_start()
-  def start_link do
+  @spec start_link(public_url: module) :: Supervisor.on_start()
+  def start_link(opts) do
+    Demo.Core.PublicUrl.configure(Keyword.fetch!(opts, :public_url))
+
     Supervisor.start_link(
       [
         Demo.Core.Repo,
@@ -16,6 +20,6 @@ defmodule Demo.Core do
 
   @doc false
   @spec child_spec(any) :: Supervisor.child_spec()
-  def child_spec(_arg),
-    do: %{id: __MODULE__, type: :supervisor, start: {__MODULE__, :start_link, []}}
+  def child_spec(opts),
+    do: %{id: __MODULE__, type: :supervisor, start: {__MODULE__, :start_link, [opts]}}
 end
