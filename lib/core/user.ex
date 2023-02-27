@@ -3,7 +3,7 @@ defmodule Demo.Core.User do
   import Ecto.Changeset
   import Ecto.Query
 
-  alias Demo.Core.{Model.User, Repo, Token}
+  alias Demo.Core.{Model.User, PublicUrl, Repo, Token}
 
   @type confirm_email_token :: Token.value()
   @type auth_token :: Token.value()
@@ -11,9 +11,8 @@ defmodule Demo.Core.User do
 
   @type url_builder(arg) :: (arg -> url :: String.t())
 
-  @spec start_registration(String.t(), url_builder(confirm_email_token)) ::
-          :ok | {:error, Ecto.Changeset.t()}
-  def start_registration(email, url_fun) do
+  @spec start_registration(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
+  def start_registration(email) do
     with {:ok, _} <-
            {%{}, %{email: :string}}
            |> change(email: email)
@@ -25,7 +24,7 @@ defmodule Demo.Core.User do
       create_email_confirmation(
         email,
         "Registration",
-        &"To create the account visit #{url_fun.(&1)}"
+        &"To create the account visit #{PublicUrl.finish_registration(&1)}"
       )
     end
   end

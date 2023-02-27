@@ -28,7 +28,7 @@ defmodule Demo.Interface.User.Controller do
     do: render(conn, :start_registration, changeset: empty_changeset())
 
   def start_registration(conn, %{"form" => %{"email" => email}}) do
-    case User.start_registration(email, &Routes.user_url(conn, :finish_registration_form, &1)) do
+    case User.start_registration(email) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_registration, changeset: changeset)
     end
