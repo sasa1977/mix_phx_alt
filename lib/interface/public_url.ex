@@ -12,4 +12,7 @@ defmodule Demo.Interface.PublicUrl do
 
   @impl Core.PublicUrl
   def change_email(token), do: Routes.user_url(Endpoint, :change_email, token)
+
+  @impl Core.PublicUrl
+  def reset_password(token), do: Routes.user_url(Endpoint, :reset_password_form, token)
 end

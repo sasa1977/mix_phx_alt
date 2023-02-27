@@ -133,7 +133,7 @@ defmodule Demo.Interface.User.Controller do
     do: render(conn, :start_password_reset, changeset: empty_changeset())
 
   def start_password_reset(conn, %{"form" => %{"email" => email}}) do
-    case User.start_password_reset(email, &"http://localhost:4000/reset_password/#{&1}") do
+    case User.start_password_reset(email) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
     end
