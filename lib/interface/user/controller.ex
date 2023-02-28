@@ -27,20 +27,27 @@ defmodule Demo.Interface.User.Controller do
   def start_registration_form(conn, _params),
     do: render(conn, :start_registration, changeset: empty_changeset())
 
-  def start_registration(conn, %{"form" => %{"email" => email}}) do
+  def start_registration(conn, params) do
+    email = params |> Map.fetch!("form") |> Map.fetch!("email")
+
     case User.start_registration(email) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_registration, changeset: changeset)
     end
   end
 
-  def finish_registration_form(conn, %{"token" => token}) do
+  def finish_registration_form(conn, params) do
+    token = Map.fetch!(params, "token")
+
     if Token.valid?(token, :confirm_email),
       do: render(conn, :finish_registration, token: token, changeset: empty_changeset()),
       else: {:error, :not_found}
   end
 
-  def finish_registration(conn, %{"token" => token, "form" => %{"password" => password}}) do
+  def finish_registration(conn, params) do
+    token = Map.fetch!(params, "token")
+    password = params |> Map.fetch!("form") |> Map.fetch!("password")
+
     case User.finish_registration(token, password) do
       {:ok, token} ->
         conn |> put_flash(:info, "User activated successfully.") |> on_authenticated(token)
@@ -60,8 +67,8 @@ defmodule Demo.Interface.User.Controller do
   def login_form(conn, _params),
     do: render(conn, :login, error_message: nil)
 
-  def login(conn, %{"form" => form}) do
-    %{"email" => email, "password" => password, "remember" => remember?} = form
+  def login(conn, params) do
+    %{"form" => %{"email" => email, "password" => password, "remember" => remember?}} = params
 
     case User.login(email, password) do
       {:ok, token} -> on_authenticated(conn, token, remember?: remember? == "true")
@@ -89,8 +96,8 @@ defmodule Demo.Interface.User.Controller do
 
   def settings(conn, _params), do: render_form(conn)
 
-  def change_password(conn, %{"password" => password}) do
-    %{"current" => current, "new" => new} = password
+  def change_password(conn, params) do
+    %{"password" => %{"current" => current, "new" => new}} = params
 
     case User.change_password(conn.assigns.current_user, current, new) do
       {:ok, auth_token} ->
@@ -103,14 +110,18 @@ defmodule Demo.Interface.User.Controller do
     end
   end
 
-  def start_email_change(conn, %{"change_email" => %{"email" => email, "password" => password}}) do
+  def start_email_change(conn, params) do
+    %{"change_email" => %{"email" => email, "password" => password}} = params
+
     case User.start_email_change(conn.assigns.current_user, email, password) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render_form(conn, email_changeset: changeset)
     end
   end
 
-  def change_email(conn, %{"token" => token}) do
+  def change_email(conn, params) do
+    token = Map.fetch!(params, "token")
+
     case User.change_email(token) do
       {:ok, token} ->
         conn |> put_flash(:info, "Email changed successfully.") |> on_authenticated(token)
@@ -132,20 +143,27 @@ defmodule Demo.Interface.User.Controller do
   def start_password_reset_form(conn, _params),
     do: render(conn, :start_password_reset, changeset: empty_changeset())
 
-  def start_password_reset(conn, %{"form" => %{"email" => email}}) do
+  def start_password_reset(conn, params) do
+    email = params |> Map.fetch!("form") |> Map.fetch!("email")
+
     case User.start_password_reset(email) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render(conn, :start_password_reset, changeset: changeset)
     end
   end
 
-  def reset_password_form(conn, %{"token" => token}) do
+  def reset_password_form(conn, params) do
+    token = Map.fetch!(params, "token")
+
     if Token.valid?(token, :password_reset),
       do: render(conn, :reset_password, changeset: empty_changeset(), token: token),
       else: {:error, :not_found}
   end
 
-  def reset_password(conn, %{"token" => token, "form" => %{"password" => password}}) do
+  def reset_password(conn, params) do
+    token = Map.fetch!(params, "token")
+    password = params |> Map.fetch!("form") |> Map.fetch!("password")
+
     case User.reset_password(token, password) do
       {:ok, token} ->
         conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)
