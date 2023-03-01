@@ -81,13 +81,13 @@ defmodule Demo.Interface.User.Controller do
 
     conn
     |> Auth.clear()
-    |> redirect(to: Routes.user_path(conn, :login_form))
+    |> redirect(to: ~p"/login")
   end
 
   defp on_authenticated(conn, auth_token, opts \\ []) do
     conn
     |> Auth.set(auth_token, opts)
-    |> redirect(to: Routes.user_path(conn, :welcome))
+    |> redirect(to: ~p"/")
   end
 
   # ------------------------------------------------------------------------

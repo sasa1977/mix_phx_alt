@@ -13,7 +13,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
     test "form redirects if the user is authenticated" do
       conn = register!() |> recycle() |> get("/start_password_reset")
-      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
+      assert redirected_to(conn) == ~p"/"
     end
 
     test "creates the token if the user exists" do
@@ -71,7 +71,7 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
       new_password = new_password()
       assert {:ok, conn} = reset_password(token, new_password)
-      assert conn.request_path == Routes.user_path(conn, :welcome)
+      assert conn.request_path == ~p"/"
 
       assert {:error, _} = login(registration_params)
       assert {:ok, _} = login(%{registration_params | password: new_password})
