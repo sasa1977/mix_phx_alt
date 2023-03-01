@@ -2,6 +2,7 @@ defmodule Demo.Interface.Controller do
   defmacro __using__(_opts) do
     quote do
       use Phoenix.Controller
+      use Demo.Interface.Routes
 
       import Demo.Interface.User.Auth
       import Plug.Conn

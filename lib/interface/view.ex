@@ -7,8 +7,8 @@ defmodule Demo.Interface.View do
       ]
 
       use Phoenix.View, Keyword.merge(default_opts, unquote(opts))
-
       use Phoenix.HTML
+      use Demo.Interface.Routes
 
       import Phoenix.Controller,
         only: [get_csrf_token: 0, view_module: 1, view_template: 1]

@@ -82,7 +82,7 @@ defmodule Demo.Interface.Endpoint do
     at: "/",
     from: :demo,
     gzip: false,
-    only: ~w(assets fonts images favicon.ico robots.txt)
+    only: Demo.Interface.Routes.static_paths()
 
   if code_reloading? do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
