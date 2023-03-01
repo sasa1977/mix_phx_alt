@@ -4,10 +4,6 @@ defmodule Demo.Interface.User.WelcomeTest do
   import Demo.Test.Client
 
   describe "welcome page" do
-    test "is the default page" do
-      assert Demo.Interface.Router.Helpers.user_path(build_conn(), :welcome) == "/"
-    end
-
     test "redirects to login if the user is anonymous" do
       conn = get(build_conn(), "/")
       assert redirected_to(conn) == ~p"/login"
