@@ -13,6 +13,7 @@ defmodule Demo.Interface.View do
       import Phoenix.Controller,
         only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
 
+      import Phoenix.Component
       import Phoenix.LiveView.Helpers
       import Phoenix.View
       import Demo.Interface.View.Helpers
