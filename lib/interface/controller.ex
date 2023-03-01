@@ -7,9 +7,6 @@ defmodule Demo.Interface.Controller do
       import Demo.Interface.User.Auth
       import Plug.Conn
 
-      # credo:disable-for-next-line Credo.Check.Readability.AliasAs
-      alias Demo.Interface.Router.Helpers, as: Routes
-
       plug :put_layout, {Demo.Interface.Layout.View, :app}
 
       action_fallback Demo.Interface.Error.Controller

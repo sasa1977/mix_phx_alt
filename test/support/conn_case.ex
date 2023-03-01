@@ -11,9 +11,6 @@ defmodule Demo.Test.ConnCase do
       import Demo.Test.ConnCase
       import Demo.Helpers
 
-      # credo:disable-for-next-line Credo.Check.Readability.AliasAs
-      alias Demo.Interface.Router.Helpers, as: Routes
-
       # The default endpoint for testing
       @endpoint Demo.Interface.Endpoint
     end
