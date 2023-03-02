@@ -17,16 +17,16 @@
         <nav>
           <ul>
             <%= if @current_user do %>
-              <li><%= link "Settings", to: ~p"/settings" %></li>
-              <li><%= link "Log out", to: ~p"/logout", method: :post %></li>
+              <li><.link href={~p"/settings"}>Settings</.link></li>
+              <li><.link href={~p"/logout"} method="post">Log out</.link></li>
             <% end %>
 
             <%= if function_exported?(Demo.Interface.Router.Helpers, :live_dashboard_path, 2) do %>
-              <li><%= link "LiveDashboard", to: Demo.Interface.Router.Helpers.live_dashboard_path(@conn, :home) %></li>
+              <li><.link href={Demo.Interface.Router.Helpers.live_dashboard_path(@conn, :home)}>Settings</.link> </li>
             <% end %>
 
             <%= if Demo.Helpers.mix_env() == :dev do %>
-              <li><%= link "Sent mails", to: "/dev/mailbox" %></li>
+              <li><.link href={~p"/dev/mailbox"}>Sent mails</.link></li>
             <% end %>
           </ul>
         </nav>
