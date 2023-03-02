@@ -25,6 +25,8 @@ defmodule Demo.Interface.User.PasswordResetTest do
     end
 
     test "doesn't create the token if the user doesn't exist" do
+      register!()
+
       assert {:ok, token} = start_password_reset("unknown_user@foo.bar")
       assert token == nil
     end
