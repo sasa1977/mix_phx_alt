@@ -13,7 +13,7 @@ defmodule Demo.Interface.Endpoint do
         http: [port: 4000],
         url: Demo.Config.public_url() |> URI.parse() |> Map.take(~w/scheme host port path/),
         secret_key_base: Demo.Config.secret_key_base(),
-        render_errors: [view: Demo.Interface.Error.View, accepts: ~w(html json), layout: false],
+        render_errors: [formats: [html: Demo.Interface.Error.HTML], layout: false],
         pubsub_server: Demo.PubSub,
         live_view: [signing_salt: "lM/3bilV"]
       )
