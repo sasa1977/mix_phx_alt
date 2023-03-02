@@ -37,7 +37,6 @@ defmodule Demo.MixProject do
       {:esbuild, "~> 0.3", runtime: Mix.env() == :dev},
       {:floki, ">= 0.30.0", only: :test},
       {:gettext, "~> 0.20"},
-      {:heroicons, "~> 0.5"},
       {:jason, "~> 1.2"},
       {:parent, "~> 0.12"},
       {:phoenix_ecto, "~> 4.4"},
