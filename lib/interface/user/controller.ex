@@ -156,7 +156,12 @@ defmodule Demo.Interface.User.Controller do
     token = Map.fetch!(params, "token")
 
     if Token.valid?(token, :password_reset),
-      do: render(conn, :reset_password, changeset: empty_changeset(), token: token),
+      do:
+        render(conn, :reset_password,
+          changeset: empty_changeset(),
+          token: token,
+          error_message: nil
+        ),
       else: {:error, :not_found}
   end
 
@@ -169,7 +174,7 @@ defmodule Demo.Interface.User.Controller do
         conn |> put_flash(:info, "Password changed successfully.") |> on_authenticated(token)
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :reset_password, changeset: changeset, token: token)
+        render(conn, :reset_password, changeset: changeset, token: token, error_message: nil)
 
       {:error, :invalid_token} ->
         {:error, :not_found}
