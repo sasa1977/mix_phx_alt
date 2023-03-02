@@ -45,7 +45,6 @@ defmodule Demo.MixProject do
       {:phoenix_live_dashboard, "~> 0.7.2"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 0.18.3"},
-      {:phoenix_view, "~> 2.0"},
       {:phoenix, "~> 1.7.0"},
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, ">= 0.0.0"},
