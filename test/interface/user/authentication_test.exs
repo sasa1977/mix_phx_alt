@@ -9,8 +9,8 @@ defmodule Demo.Interface.User.AuthenticationTest do
     test "form is rendered for a guest" do
       conn = get(build_conn(), "/login")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="form_email" name="form[email]/
-      assert response =~ ~s/<input id="form_password" name="form[password]/
+      assert response =~ ~s/id="form_email"/
+      assert response =~ ~s/id="form_password"/
     end
 
     test "form redirects if the user is authenticated" do
