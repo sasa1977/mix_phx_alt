@@ -303,7 +303,7 @@ defmodule Demo.Interface.CoreComponents do
   def input(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
-    |> assign(:errors, field.errors)
+    |> assign(:errors, Enum.map(field.errors, &translate_error/1))
     |> assign_new(:name, fn -> if assigns.multiple, do: field.name <> "[]", else: field.name end)
     |> assign_new(:value, fn -> field.value end)
     |> input()
@@ -621,5 +621,10 @@ defmodule Demo.Interface.CoreComponents do
     |> JS.hide(to: "##{id}", transition: {"block", "block", "hidden"})
     |> JS.remove_class("overflow-hidden", to: "body")
     |> JS.pop_focus()
+  end
+
+  defp translate_error({msg, opts}) do
+    {:ok, msg} = Gettext.Interpolation.Default.runtime_interpolate(msg, Map.new(opts))
+    msg
   end
 end
