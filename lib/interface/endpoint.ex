@@ -36,8 +36,8 @@ defmodule Demo.Interface.Endpoint do
       live_reload: [
         patterns: [
           ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-          ~r"lib/interface/.*/view.ex$",
-          ~r"lib/interface/.*/templates/.*(eex)$"
+          ~r"lib/interface/.*/html.ex$",
+          ~r"lib/interface/.*/html/.*(heex)$"
         ]
       ]
     ]
