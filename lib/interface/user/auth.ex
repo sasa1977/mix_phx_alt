@@ -1,13 +1,12 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
 defmodule Demo.Interface.User.Auth do
+  use Demo.Interface.Routes
+
   import Phoenix.Controller
   import Plug.Conn
 
   alias Demo.Core.{Model, Token, User}
-
-  # credo:disable-for-next-line Credo.Check.Readability.AliasAs
-  alias Demo.Interface.Router.Helpers, as: Routes
 
   @spec token(Plug.Conn.t()) :: User.auth_token() | nil
   def token(conn), do: get_session(conn, :auth_token)
@@ -68,12 +67,12 @@ defmodule Demo.Interface.User.Auth do
   def require_user(conn, _opts) do
     if conn.assigns.current_user,
       do: conn,
-      else: conn |> redirect(to: Routes.user_path(conn, :login_form)) |> halt()
+      else: conn |> redirect(to: ~p"/login") |> halt()
   end
 
   def require_anonymous(conn, _opts) do
     if is_nil(conn.assigns.current_user),
       do: conn,
-      else: conn |> redirect(to: Routes.user_path(conn, :welcome)) |> halt()
+      else: conn |> redirect(to: ~p"/") |> halt()
   end
 end

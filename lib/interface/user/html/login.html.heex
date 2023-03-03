@@ -1,0 +1,25 @@
+<h1>Log in</h1>
+
+<.simple_form :let={f} for={@conn} action={~p"/login"} as={:form}>
+  <.error :if={@error_message}><%= @error_message %></.error>
+
+  <.input field={f[:email]} type="email" label="Email" required />
+  <.input field={f[:password]} type="password" label="Password" required />
+  <.input field={f[:remember]} type="checkbox" label="Keep me logged in" />
+
+  <:actions>
+    <.button phx-disable-with="Signing in..." class="w-full">
+      Sign in <span aria-hidden="true">→</span>
+    </.button>
+  </:actions>
+</.simple_form>
+
+<p>
+  <.link href={~p"/start_registration"} class="text-sm font-semibold">
+    Register
+  </.link>
+  |
+  <.link href={~p"/start_password_reset"} class="text-sm font-semibold">
+    Forgot your password?
+  </.link>
+</p>

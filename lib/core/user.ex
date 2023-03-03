@@ -125,7 +125,7 @@ defmodule Demo.Core.User do
            |> change(email: email)
            |> validate_email()
            |> apply_action(:update) do
-      if user = Repo.one(User, email: email) do
+      if user = Repo.get_by(User, email: email) do
         token = Token.create(user, :password_reset)
 
         Demo.Core.Mailer.send(

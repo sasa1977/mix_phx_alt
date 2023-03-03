@@ -1,0 +1,31 @@
+<h1>Settings</h1>
+
+<h3>Change email</h3>
+
+<.simple_form :let={f} for={@email_changeset} action={~p"/start_email_change"} as={:change_email}>
+  <.error :if={@email_changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+
+  <.input field={f[:email]} type="email" label="Email" required />
+  <.input field={f[:password]} type="password" label="Password" required />
+
+  <:actions>
+    <.button phx-disable-with="Changing...">Change email</.button>
+  </:actions>
+</.simple_form>
+
+<h3>Change password</h3>
+
+<.simple_form :let={f} for={@password_changeset} action={~p"/change_password"} as={:password}>
+  <.error :if={@email_changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+
+  <.input field={f[:current]} type="password" label="Current password" required />
+  <.input field={f[:new]} type="password" label="New password" required />
+
+  <:actions>
+    <.button phx-disable-with="Changing...">Change password</.button>
+  </:actions>
+</.simple_form>

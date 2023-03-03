@@ -1,0 +1,13 @@
+<h1>Register</h1>
+
+<.simple_form :let={f} for={@changeset} action={~p"/start_registration"} as={:form}>
+  <.error :if={@changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+
+  <.input field={f[:email]} type="email" label="Email" required />
+
+  <:actions>
+    <.button phx-disable-with="Sending activation email..." class="w-full">Register</.button>
+  </:actions>
+</.simple_form>

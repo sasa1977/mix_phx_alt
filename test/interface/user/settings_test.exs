@@ -7,12 +7,12 @@ defmodule Demo.Interface.User.SettingsTest do
     test "is rendered if the user is authenticated" do
       conn = register!() |> recycle() |> get("/settings")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="password_new" name="password[new]/
+      assert response =~ ~s/id="password_new"/
     end
 
     test "redirects an anonymous user" do
       conn = get(build_conn(), "/settings")
-      assert redirected_to(conn) == Routes.user_path(conn, :login)
+      assert redirected_to(conn) == ~p"/login"
     end
   end
 

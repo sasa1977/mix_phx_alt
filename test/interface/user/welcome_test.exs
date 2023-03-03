@@ -4,13 +4,9 @@ defmodule Demo.Interface.User.WelcomeTest do
   import Demo.Test.Client
 
   describe "welcome page" do
-    test "is the default page" do
-      assert Routes.user_path(build_conn(), :welcome) == "/"
-    end
-
     test "redirects to login if the user is anonymous" do
       conn = get(build_conn(), "/")
-      assert redirected_to(conn) == Routes.user_path(conn, :login)
+      assert redirected_to(conn) == ~p"/login"
     end
 
     test "redirects to registration if the token expired" do
@@ -18,7 +14,7 @@ defmodule Demo.Interface.User.WelcomeTest do
       expire_last_token()
 
       conn = conn |> recycle() |> get("/")
-      assert redirected_to(conn) == Routes.user_path(conn, :login)
+      assert redirected_to(conn) == ~p"/login"
     end
 
     test "greets the authenticated user" do

@@ -7,13 +7,13 @@ defmodule Demo.Interface.User.RegistrationTest do
     test "form is rendered for a guest" do
       conn = get(build_conn(), "/start_registration")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="form_email" name="form[email]/
+      assert response =~ ~s/id="form_email"/
       refute response =~ "Log out"
     end
 
     test "form redirects if the user is authenticated" do
       conn = register!() |> recycle() |> get("/start_registration")
-      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
+      assert redirected_to(conn) == ~p"/"
     end
 
     test "rejects invalid email" do
@@ -47,7 +47,7 @@ defmodule Demo.Interface.User.RegistrationTest do
       token = ok!(start_registration(new_email()))
       conn = get(build_conn(), "/finish_registration/#{token}")
       response = html_response(conn, 200)
-      assert response =~ ~s/<input id="form_password" name="form[password]/
+      assert response =~ ~s/id="form_password"/
       refute response =~ "Log out"
     end
 
@@ -58,13 +58,13 @@ defmodule Demo.Interface.User.RegistrationTest do
 
     test "form redirects if the user is authenticated" do
       conn = register!() |> recycle() |> get("/finish_registration/some_token")
-      assert redirected_to(conn) == Routes.user_path(conn, :welcome)
+      assert redirected_to(conn) == ~p"/"
     end
 
     test "succeeds with valid token" do
       token = ok!(start_registration(new_email()))
       assert {:ok, conn} = finish_registration(token, new_password())
-      assert conn.request_path == Routes.user_path(conn, :welcome)
+      assert conn.request_path == ~p"/"
     end
 
     test "rejects invalid password" do

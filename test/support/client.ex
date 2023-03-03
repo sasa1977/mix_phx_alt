@@ -1,4 +1,6 @@
 defmodule Demo.Test.Client do
+  use Demo.Interface.Routes
+
   import Phoenix.ConnTest
   import Demo.Test.ConnCase
   import Demo.Helpers
@@ -6,16 +8,13 @@ defmodule Demo.Test.Client do
 
   alias Demo.Core.{Model, Repo, User}
 
-  # credo:disable-for-next-line Credo.Check.Readability.AliasAs
-  alias Demo.Interface.Router.Helpers, as: Routes
-
   # The default endpoint for testing
   # using String.to_atom to avoid compile-time dep to the endpoint
   @endpoint String.to_atom("Elixir.Demo.Interface.Endpoint")
 
   @spec logged_in?(Plug.Conn.t()) :: boolean
   def logged_in?(conn) do
-    conn = conn |> recycle() |> get(Routes.user_path(conn, :welcome))
+    conn = conn |> recycle() |> get(~p"/")
     conn.status == 200 and conn.assigns.current_user != nil
   end
 
