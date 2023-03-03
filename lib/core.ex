@@ -1,7 +1,7 @@
 defmodule Demo.Core do
   use Boundary,
     deps: [Demo.{Config, Helpers}],
-    exports: [UrlBuilder, User, Token, {Model, except: [Base]}]
+    exports: [Gettext, UrlBuilder, User, Token, {Model, except: [Base]}]
 
   @spec start_link(url_builder: module) :: Supervisor.on_start()
   def start_link(opts) do

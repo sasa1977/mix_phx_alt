@@ -226,7 +226,8 @@ defmodule Demo.Interface.CoreComponents do
   end
 
   defp translate_error({msg, opts}) do
-    {:ok, msg} = Gettext.Interpolation.Default.runtime_interpolate(msg, Map.new(opts))
-    msg
+    if count = opts[:count],
+      do: Gettext.dngettext(Demo.Core.Gettext, "errors", msg, msg, count, opts),
+      else: Gettext.dgettext(Demo.Core.Gettext, "errors", msg, opts)
   end
 end

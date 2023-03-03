@@ -37,7 +37,8 @@ defmodule Demo.Interface.Endpoint do
         patterns: [
           ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
           ~r"lib/interface/.*/html.ex$",
-          ~r"lib/interface/.*/html/.*(heex)$"
+          ~r"lib/interface/.*/html/.*(heex)$",
+          ~r"priv/gettext/.*(po)$"
         ]
       ]
     ]
