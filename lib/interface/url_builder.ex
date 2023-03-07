@@ -1,7 +1,7 @@
 defmodule Demo.Interface.UrlBuilder do
   @behaviour Demo.Core.UrlBuilder
 
-  use Demo.Interface.Routes
+  use Demo.Interface.Base.Routes
 
   alias Demo.Core
   alias Demo.Interface.Endpoint
