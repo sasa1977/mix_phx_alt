@@ -1,6 +1,6 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
-defmodule Demo.Interface.CoreComponents do
+defmodule Demo.Interface.Base.Components do
   @moduledoc "Provides core UI components."
   use Phoenix.Component
 

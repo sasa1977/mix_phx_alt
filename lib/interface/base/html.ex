@@ -9,7 +9,7 @@ defmodule Demo.Interface.Base.Html do
 
       import Phoenix.HTML
 
-      import Demo.Interface.CoreComponents
+      import Demo.Interface.Base.Components
 
       alias Phoenix.LiveView.JS
     end
