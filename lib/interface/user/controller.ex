@@ -1,7 +1,7 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
 defmodule Demo.Interface.User.Controller do
-  use Demo.Interface.Controller
+  use Demo.Interface.Base.Controller
 
   import Demo.Helpers
 
