@@ -1,5 +1,5 @@
-defmodule Demo.Interface.User.HTML do
-  use Demo.Interface.HTML
+defmodule Demo.Interface.User.Html do
+  use Demo.Interface.Html
 
   embed_templates "html/*"
 end

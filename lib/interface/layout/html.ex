@@ -1,4 +1,4 @@
-defmodule Demo.Interface.Layout.HTML do
-  use Demo.Interface.HTML
+defmodule Demo.Interface.Layout.Html do
+  use Demo.Interface.Html
   embed_templates "html/*"
 end

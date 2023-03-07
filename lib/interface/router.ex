@@ -11,7 +11,7 @@ defmodule Demo.Interface.Router do
     plug :fetch_session
     plug :fetch_live_flash
     plug :fetch_current_user
-    plug :put_root_layout, html: {Demo.Interface.Layout.HTML, :root}
+    plug :put_root_layout, html: {Demo.Interface.Layout.Html, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end

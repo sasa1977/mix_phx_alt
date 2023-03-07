@@ -1,4 +1,4 @@
-defmodule Demo.Interface.HTML do
+defmodule Demo.Interface.Html do
   defmacro __using__(_opts) do
     quote do
       use Phoenix.Component
