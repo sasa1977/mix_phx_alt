@@ -5,7 +5,8 @@ defmodule Demo.Interface.Base.Controller do
       use Demo.Interface.Routes
 
       import Demo.Interface.User.Auth
-      import Plug.Conn
+
+      plug Demo.Interface.Base.Browser
 
       action_fallback Demo.Interface.Error.Controller
     end
