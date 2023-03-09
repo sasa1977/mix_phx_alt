@@ -1,19 +1,19 @@
 defmodule Demo.Core.UrlBuilder do
   alias Demo.Core.User
 
-  @type t :: String.t()
+  @type url :: String.t()
 
-  @callback finish_registration_form(User.confirm_email_token()) :: t
-  @callback change_email(User.confirm_email_token()) :: t
-  @callback reset_password_form(User.password_reset_token()) :: t
+  @callback finish_registration_form(User.confirm_email_token()) :: url
+  @callback change_email(User.confirm_email_token()) :: url
+  @callback reset_password_form(User.password_reset_token()) :: url
 
-  @spec finish_registration_form(User.confirm_email_token()) :: t
+  @spec finish_registration_form(User.confirm_email_token()) :: url
   def finish_registration_form(token), do: impl().finish_registration_form(token)
 
-  @spec change_email(User.confirm_email_token()) :: t
+  @spec change_email(User.confirm_email_token()) :: url
   def change_email(token), do: impl().change_email(token)
 
-  @spec reset_password_form(User.password_reset_token()) :: t
+  @spec reset_password_form(User.password_reset_token()) :: url
   def reset_password_form(token), do: impl().reset_password_form(token)
 
   @doc false
