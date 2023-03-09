@@ -1,7 +1,8 @@
 defmodule Demo.Interface.Router do
   use Phoenix.Router
+  alias Demo.Interface.User
 
-  scope "/", Demo.Interface do
+  scope "/" do
     get "/", User.Controller, :welcome
 
     # registration
