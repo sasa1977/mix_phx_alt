@@ -1,6 +1,13 @@
 defmodule Demo.Application do
-  use Boundary, deps: [Demo.{Core, Config, Interface}]
   use Application
+  use Boundary, deps: [Demo.{Core, Config, Interface}]
+
+  @spec migrate :: :ok
+  def migrate do
+    Application.load(:demo)
+    Demo.Config.validate!()
+    Demo.Core.migrate!()
+  end
 
   @impl Application
   def start(_type, _args) do
