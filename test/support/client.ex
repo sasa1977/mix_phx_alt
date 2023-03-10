@@ -1,5 +1,5 @@
 defmodule Demo.Test.Client do
-  use Demo.Interface.Routes
+  use Demo.Interface.Base.Routes
 
   import Phoenix.ConnTest
   import Demo.Test.ConnCase

@@ -1,7 +1,7 @@
 # credo:disable-for-this-file Credo.Check.Readability.Specs
 
 defmodule Demo.Interface.User.Auth do
-  use Demo.Interface.Routes
+  use Demo.Interface.Base.Routes
 
   import Phoenix.Controller
   import Plug.Conn

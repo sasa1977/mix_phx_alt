@@ -1,28 +1,8 @@
 defmodule Demo.Interface.Router do
   use Phoenix.Router
+  alias Demo.Interface.User
 
-  import Demo.Interface.User.Auth
-  import Plug.Conn
-  import Phoenix.Controller
-  import Phoenix.LiveView.Router
-
-  pipeline :browser do
-    plug :accepts, ["html"]
-    plug :fetch_session
-    plug :fetch_live_flash
-    plug :fetch_current_user
-    plug :put_root_layout, html: {Demo.Interface.Layout.HTML, :root}
-    plug :protect_from_forgery
-    plug :put_secure_browser_headers
-  end
-
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
-  scope "/", Demo.Interface do
-    pipe_through [:browser]
-
+  scope "/" do
     get "/", User.Controller, :welcome
 
     # registration
@@ -53,8 +33,6 @@ defmodule Demo.Interface.Router do
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
-      pipe_through :browser
-
       live_dashboard "/dashboard", metrics: Demo.Interface.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end

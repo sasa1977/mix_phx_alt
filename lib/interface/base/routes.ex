@@ -1,4 +1,4 @@
-defmodule Demo.Interface.Routes do
+defmodule Demo.Interface.Base.Routes do
   defmacro __using__(_opts) do
     quote do
       use Phoenix.VerifiedRoutes,

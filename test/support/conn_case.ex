@@ -4,7 +4,7 @@ defmodule Demo.Test.ConnCase do
 
   using do
     quote do
-      use Demo.Interface.Routes
+      use Demo.Interface.Base.Routes
 
       import Plug.Conn
       import Phoenix.ConnTest

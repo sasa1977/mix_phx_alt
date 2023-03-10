@@ -8,7 +8,7 @@ defmodule Demo.Interface.Error.Controller do
 
     conn
     |> put_status(code)
-    |> put_view(html: Demo.Interface.Error.HTML)
+    |> put_view(html: Demo.Interface.Error.Html)
     |> render("#{code}.html")
   end
 end

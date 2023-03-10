@@ -18,6 +18,12 @@ defmodule Demo.Core do
     )
   end
 
+  @spec migrate! :: :ok
+  def migrate! do
+    {:ok, _, _} = Ecto.Migrator.with_repo(Demo.Core.Repo, &Ecto.Migrator.run(&1, :up, all: true))
+    :ok
+  end
+
   @doc false
   @spec child_spec(any) :: Supervisor.child_spec()
   def child_spec(opts),
