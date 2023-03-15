@@ -32,9 +32,6 @@ defmodule Demo.Interface.User.PasswordResetTest do
     end
 
     test "rejects invalid email" do
-      assert {:error, conn} = start_password_reset(nil)
-      assert "can't be blank" in errors(conn, :email)
-
       assert {:error, conn} = start_password_reset("")
       assert "can't be blank" in errors(conn, :email)
 

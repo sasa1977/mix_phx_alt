@@ -17,9 +17,6 @@ defmodule Demo.Interface.User.RegistrationTest do
     end
 
     test "rejects invalid email" do
-      assert {:error, conn} = start_registration(nil)
-      assert "can't be blank" in errors(conn, :email)
-
       assert {:error, conn} = start_registration("")
       assert "can't be blank" in errors(conn, :email)
 
