@@ -57,9 +57,8 @@ defmodule Demo.Core.Token do
   def spend(token, type) do
     # Using delete_all with select ensures we won't spend the same token twice.
     with {:ok, hash} <- hash(token),
-         {count, tokens} = Repo.delete_all(select(valid_token_query(hash, type), [token], token)),
-         :ok <- validate(count == 1),
-         do: {:ok, Repo.preload(hd(tokens), :user)},
+         {1, [token]} <- Repo.delete_all(select(valid_token_query(hash, type), [token], token)),
+         do: {:ok, Repo.preload(token, :user)},
          else: (_ -> {:error, :invalid_token})
   end
 
