@@ -35,7 +35,7 @@ defmodule Demo.Core.Token do
   @spec valid?(value, Token.type()) :: boolean
   def valid?(token, type) do
     case hash(token) do
-      {:ok, hash} -> Repo.exists?(valid_tokens_query(), hash: hash, type: type)
+      {:ok, hash} -> Repo.exists?(valid_token_query(hash, type))
       :error -> false
     end
   end
