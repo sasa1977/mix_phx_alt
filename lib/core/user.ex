@@ -11,11 +11,7 @@ defmodule Demo.Core.User do
 
   @spec start_registration(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email) do
-    with {:ok, _} <-
-           {%{}, %{email: :string}}
-           |> change(email: email)
-           |> validate_email()
-           |> apply_action(:insert) do
+    with :ok <- validate_email_shape(email) do
       # Note that we don't create the user entry here. Multiple different registrations can be
       # started for the same email, but only one can succeed. This prevents hijacking the
       # registration for a non-owned email. See `create_email_confirmation` for details.
@@ -49,7 +45,7 @@ defmodule Demo.Core.User do
     with {:ok, _} <-
            {%{}, %{email: :string, password: :string}}
            |> change(email: email, password: password)
-           |> validate_email()
+           |> validate_email_shape()
            |> validate_field(:email, &if(&1 == user.email, do: "is the same"))
            |> validate_field(:password, &unless(password_ok?(user, &1), do: "is invalid"))
            |> apply_action(:update) do
@@ -120,11 +116,7 @@ defmodule Demo.Core.User do
 
   @spec start_password_reset(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def start_password_reset(email) do
-    with {:ok, _} <-
-           {%{}, %{email: :string}}
-           |> change(email: email)
-           |> validate_email()
-           |> apply_action(:update) do
+    with :ok <- validate_email_shape(email) do
       if user = Repo.get_by(User, email: email) do
         token = Token.create(user, :password_reset)
 
@@ -188,7 +180,18 @@ defmodule Demo.Core.User do
 
   defp password_hash(password), do: Bcrypt.hash_pwd_salt(password)
 
-  defp validate_email(changeset) do
+  @spec validate_email_shape(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
+  @spec validate_email_shape(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  defp validate_email_shape(email) when is_binary(email) do
+    with {:ok, _map} <-
+           {%{}, %{email: :string}}
+           |> change(email: email)
+           |> validate_email_shape()
+           |> apply_action(:insert),
+         do: :ok
+  end
+
+  defp validate_email_shape(changeset) do
     changeset
     |> validate_required([:email])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
