@@ -212,13 +212,17 @@ defmodule Demo.Core.User do
         change(user_schema_or_changeset, password_hash: password_hash(value))
 
       {:error, error_changeset} ->
-        Enum.reduce(
-          error_changeset.errors,
-          change(user_schema_or_changeset),
-          fn {field, {error, keys}}, changeset ->
-            Ecto.Changeset.add_error(changeset, field, error, keys)
-          end
-        )
+        transfer_errors(error_changeset, change(user_schema_or_changeset))
     end
+  end
+
+  defp transfer_errors(from_changeset, to_changeset) do
+    Enum.reduce(
+      from_changeset.errors,
+      to_changeset,
+      fn {field, {error, keys}}, changeset ->
+        Ecto.Changeset.add_error(changeset, field, error, keys)
+      end
+    )
   end
 end
