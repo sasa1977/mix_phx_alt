@@ -15,7 +15,7 @@ defmodule Demo.Core.Token do
     - we only store the hash of the token value to the database (to prevent unauthorized usage of the tokens)
     - the returned value is url64 encoded
   """
-  @spec create(User.t(), Token.type(), map) :: value
+  @spec create(User.t() | nil, Token.type(), map) :: value
   def create(user, type, payload \\ %{}) do
     token_bytes = :crypto.strong_rand_bytes(32)
     token = Base.url_encode64(token_bytes, padding: false)
