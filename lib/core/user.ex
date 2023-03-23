@@ -47,7 +47,7 @@ defmodule Demo.Core.User do
            |> change(email: email, password: password)
            |> validate_email_shape()
            |> validate_field(:email, &if(&1 == user.email, do: "is the same"))
-           |> validate_field(:password, &unless(password_ok?(user, &1), do: "is invalid"))
+           |> validate_field(:password, &unless(password_ok?(user, &1), do: "is incorrect"))
            |> apply_action(:update) do
       create_email_confirmation(
         user,
@@ -159,7 +159,7 @@ defmodule Demo.Core.User do
              |> then(fn changeset ->
                if password_ok?(user, current),
                  do: changeset,
-                 else: add_error(changeset, :current, "is invalid")
+                 else: add_error(changeset, :current, "is incorrect")
              end)
              |> set_password(new, error_as: :new)
              |> Repo.update()
