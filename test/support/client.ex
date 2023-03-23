@@ -42,7 +42,7 @@ defmodule Demo.Test.Client do
   defp confirm_email_token(email) do
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
-        ~r[http://.*/finish_registration/(?<token>.*)]
+        ~r[http://.*/finish_registration_form/(?<token>.*)]
         |> Regex.named_captures(registration_email.text_body)
         |> Map.fetch!("token")
     after
@@ -102,7 +102,7 @@ defmodule Demo.Test.Client do
   defp password_reset_token(email) do
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Password reset"} = mail} ->
-        ~r[http://.*/reset_password/(?<token>.*)]
+        ~r[http://.*/reset_password_form/(?<token>.*)]
         |> Regex.named_captures(mail.text_body)
         |> Map.fetch!("token")
     after

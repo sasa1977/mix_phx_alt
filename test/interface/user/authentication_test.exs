@@ -7,14 +7,14 @@ defmodule Demo.Interface.User.AuthenticationTest do
 
   describe "login" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/login")
+      conn = get(build_conn(), "/login_form")
       response = html_response(conn, 200)
       assert response =~ ~s/id="form_email"/
       assert response =~ ~s/id="form_password"/
     end
 
     test "form redirects if the user is authenticated" do
-      conn = register!() |> recycle() |> get("/login")
+      conn = register!() |> recycle() |> get("/login_form")
       assert redirected_to(conn) == ~p"/"
     end
 
@@ -27,7 +27,7 @@ defmodule Demo.Interface.User.AuthenticationTest do
 
       # verify that the user is not remembered
       conn = conn |> recycle() |> delete_req_cookie("_demo_key") |> get("/")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
 
     test "remembers the user" do
@@ -51,7 +51,7 @@ defmodule Demo.Interface.User.AuthenticationTest do
       update_last_token(hash: fragment("digest(gen_random_uuid()::text, 'sha256')::bytea"))
 
       conn = conn |> recycle_no_session() |> get("/")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
 
     test "fails with wrong token type" do
@@ -62,7 +62,7 @@ defmodule Demo.Interface.User.AuthenticationTest do
       update_last_token(type: :password_reset)
 
       conn = conn |> recycle_no_session() |> get("/")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
 
     test "fails with expired token" do
@@ -73,7 +73,7 @@ defmodule Demo.Interface.User.AuthenticationTest do
       expire_last_token()
 
       conn = conn |> recycle() |> delete_req_cookie("_demo_key") |> get("/")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
 
     test "fails with invalid password" do
@@ -100,7 +100,7 @@ defmodule Demo.Interface.User.AuthenticationTest do
     logged_in_conn = ok!(login(Map.put(registration_params, :remember, "true")))
     logged_out_conn = logged_in_conn |> recycle() |> post("/logout")
 
-    assert redirected_to(logged_out_conn) == ~p"/login"
+    assert redirected_to(logged_out_conn) == ~p"/login_form"
 
     assert get_session(logged_out_conn) == %{}
     assert is_nil(logged_out_conn.assigns.current_user)

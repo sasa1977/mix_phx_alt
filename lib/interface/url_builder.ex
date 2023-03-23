@@ -8,11 +8,11 @@ defmodule Demo.Interface.UrlBuilder do
 
   @impl Core.UrlBuilder
   def finish_registration_form(token),
-    do: url(Endpoint, ~p"/finish_registration/#{token}")
+    do: url(Endpoint, ~p"/finish_registration_form/#{token}")
 
   @impl Core.UrlBuilder
   def change_email(token), do: url(Endpoint, ~p"/change_email/#{token}")
 
   @impl Core.UrlBuilder
-  def reset_password_form(token), do: url(Endpoint, ~p"/reset_password/#{token}")
+  def reset_password_form(token), do: url(Endpoint, ~p"/reset_password_form/#{token}")
 end

@@ -5,21 +5,18 @@ defmodule Demo.Interface.User.RegistrationTest do
 
   describe "start registration" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/start_registration")
+      conn = get(build_conn(), "/start_registration_form")
       response = html_response(conn, 200)
       assert response =~ ~s/id="form_email"/
       refute response =~ "Log out"
     end
 
     test "form redirects if the user is authenticated" do
-      conn = register!() |> recycle() |> get("/start_registration")
+      conn = register!() |> recycle() |> get("/start_registration_form")
       assert redirected_to(conn) == ~p"/"
     end
 
     test "rejects invalid email" do
-      assert {:error, conn} = start_registration(nil)
-      assert "can't be blank" in errors(conn, :email)
-
       assert {:error, conn} = start_registration("")
       assert "can't be blank" in errors(conn, :email)
 
@@ -45,19 +42,19 @@ defmodule Demo.Interface.User.RegistrationTest do
   describe "finish registration" do
     test "form is rendered for a guest" do
       token = ok!(start_registration(new_email()))
-      conn = get(build_conn(), "/finish_registration/#{token}")
+      conn = get(build_conn(), "/finish_registration_form/#{token}")
       response = html_response(conn, 200)
       assert response =~ ~s/id="form_password"/
       refute response =~ "Log out"
     end
 
     test "form returns 404 if the token is invalid" do
-      conn = get(build_conn(), "/finish_registration/invalid_token")
+      conn = get(build_conn(), "/finish_registration_form/invalid_token")
       assert conn.status == 404
     end
 
     test "form redirects if the user is authenticated" do
-      conn = register!() |> recycle() |> get("/finish_registration/some_token")
+      conn = register!() |> recycle() |> get("/finish_registration_form/some_token")
       assert redirected_to(conn) == ~p"/"
     end
 

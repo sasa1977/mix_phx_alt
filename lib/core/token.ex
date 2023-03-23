@@ -15,7 +15,7 @@ defmodule Demo.Core.Token do
     - we only store the hash of the token value to the database (to prevent unauthorized usage of the tokens)
     - the returned value is url64 encoded
   """
-  @spec create(User.t(), Token.type(), map) :: value
+  @spec create(User.t() | nil, Token.type(), map) :: value
   def create(user, type, payload \\ %{}) do
     token_bytes = :crypto.strong_rand_bytes(32)
     token = Base.url_encode64(token_bytes, padding: false)
@@ -35,7 +35,7 @@ defmodule Demo.Core.Token do
   @spec valid?(value, Token.type()) :: boolean
   def valid?(token, type) do
     case hash(token) do
-      {:ok, hash} -> Repo.exists?(valid_tokens_query(), hash: hash, type: type)
+      {:ok, hash} -> Repo.exists?(valid_token_query(hash, type))
       :error -> false
     end
   end
@@ -57,9 +57,8 @@ defmodule Demo.Core.Token do
   def spend(token, type) do
     # Using delete_all with select ensures we won't spend the same token twice.
     with {:ok, hash} <- hash(token),
-         {count, tokens} = Repo.delete_all(select(valid_token_query(hash, type), [token], token)),
-         :ok <- validate(count == 1),
-         do: {:ok, Repo.preload(hd(tokens), :user)},
+         {1, [token]} <- Repo.delete_all(select(valid_token_query(hash, type), [token], token)),
+         do: {:ok, Repo.preload(token, :user)},
          else: (_ -> {:error, :invalid_token})
   end
 

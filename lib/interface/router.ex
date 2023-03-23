@@ -6,20 +6,23 @@ defmodule Demo.Interface.Router do
     get "/", User.Controller, :welcome
 
     # registration
-    get "/start_registration", User.Controller, :start_registration_form
+    get "/start_registration_form", User.Controller, :start_registration_form
     post "/start_registration", User.Controller, :start_registration
-    get "/finish_registration/:token", User.Controller, :finish_registration_form
+
+    get "/finish_registration_form/:token", User.Controller, :finish_registration_form
     post "/finish_registration/:token", User.Controller, :finish_registration
 
     # login/logout
-    get "/login", User.Controller, :login_form
+    get "/login_form", User.Controller, :login_form
     post "/login", User.Controller, :login
+
     post "/logout", User.Controller, :logout
 
     # password reset
-    get "/start_password_reset", User.Controller, :start_password_reset_form
+    get "/start_password_reset_form", User.Controller, :start_password_reset_form
     post "/start_password_reset", User.Controller, :start_password_reset
-    get "/reset_password/:token", User.Controller, :reset_password_form
+
+    get "/reset_password_form/:token", User.Controller, :reset_password_form
     post "/reset_password/:token", User.Controller, :reset_password
 
     # settings

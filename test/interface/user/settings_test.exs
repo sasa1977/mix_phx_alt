@@ -12,7 +12,7 @@ defmodule Demo.Interface.User.SettingsTest do
 
     test "redirects an anonymous user" do
       conn = get(build_conn(), "/settings")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
   end
 
@@ -54,7 +54,7 @@ defmodule Demo.Interface.User.SettingsTest do
       %{email: email, password: password} = params
 
       assert {:error, conn} = change_password(conn, email, "_#{password}", new_password())
-      assert "is invalid" in errors(conn, :password_changeset, :current)
+      assert "is incorrect" in errors(conn, :password_changeset, :current)
     end
 
     test "rejects invalid new password" do
@@ -174,7 +174,7 @@ defmodule Demo.Interface.User.SettingsTest do
       assert "is the same" in errors(conn, :email_changeset, :email)
     end
 
-    test "fails if the password is invalid" do
+    test "fails if the password is incorrect" do
       params = valid_registration_params()
       register!(params)
 
@@ -183,7 +183,7 @@ defmodule Demo.Interface.User.SettingsTest do
         |> recycle()
         |> post("/start_email_change", change_email: %{email: new_email(), password: "invalid"})
 
-      assert "is invalid" in errors(conn, :email_changeset, :password)
+      assert "is incorrect" in errors(conn, :email_changeset, :password)
     end
 
     test "fails for invalid token" do

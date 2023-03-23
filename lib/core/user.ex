@@ -11,11 +11,7 @@ defmodule Demo.Core.User do
 
   @spec start_registration(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def start_registration(email) do
-    with {:ok, _} <-
-           {%{}, %{email: :string}}
-           |> change(email: email)
-           |> validate_email()
-           |> apply_action(:insert) do
+    with :ok <- validate_email_shape(email) do
       # Note that we don't create the user entry here. Multiple different registrations can be
       # started for the same email, but only one can succeed. This prevents hijacking the
       # registration for a non-owned email. See `create_email_confirmation` for details.
@@ -33,14 +29,18 @@ defmodule Demo.Core.User do
     Repo.transact(fn ->
       with {:ok, token} <- Token.spend(token, :confirm_email),
            :ok <- validate(token.user == nil, :invalid_token),
-           {:ok, user} <-
-             %User{}
-             |> change_email(Map.fetch!(token.payload, "email"))
-             |> set_password(password)
-             |> Repo.insert()
-             |> anonymize_email_exists_error(),
+           email = Map.fetch!(token.payload, "email"),
+           {:ok, user} <- insert_user(email, password),
            do: {:ok, Token.create(user, :auth)}
     end)
+  end
+
+  defp insert_user(email, password) do
+    %User{}
+    |> set_email(email)
+    |> set_password(password)
+    |> Repo.insert()
+    |> anonymize_email_exists_error()
   end
 
   @spec start_email_change(User.t(), String.t(), String.t()) ::
@@ -49,9 +49,9 @@ defmodule Demo.Core.User do
     with {:ok, _} <-
            {%{}, %{email: :string, password: :string}}
            |> change(email: email, password: password)
-           |> validate_email()
+           |> validate_email_shape()
            |> validate_field(:email, &if(&1 == user.email, do: "is the same"))
-           |> validate_field(:password, &unless(password_ok?(user, &1), do: "is invalid"))
+           |> validate_field(:password, &unless(password_ok?(user, &1), do: "is incorrect"))
            |> apply_action(:update) do
       create_email_confirmation(
         user,
@@ -69,7 +69,7 @@ defmodule Demo.Core.User do
              with {:ok, token} <- Token.spend(token, :confirm_email),
                   :ok <- validate(token.user != nil, :invalid_token) do
                token.user
-               |> change_email(Map.fetch!(token.payload, "email"))
+               |> set_email(Map.fetch!(token.payload, "email"))
                |> Repo.update()
                |> anonymize_email_exists_error()
              end
@@ -99,7 +99,7 @@ defmodule Demo.Core.User do
     :ok
   end
 
-  defp change_email(user, email),
+  defp set_email(user, email),
     do: user |> change(email: email) |> unique_constraint(:email)
 
   defp anonymize_email_exists_error(outcome) do
@@ -120,11 +120,7 @@ defmodule Demo.Core.User do
 
   @spec start_password_reset(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def start_password_reset(email) do
-    with {:ok, _} <-
-           {%{}, %{email: :string}}
-           |> change(email: email)
-           |> validate_email()
-           |> apply_action(:update) do
+    with :ok <- validate_email_shape(email) do
       if user = Repo.get_by(User, email: email) do
         token = Token.create(user, :password_reset)
 
@@ -167,7 +163,7 @@ defmodule Demo.Core.User do
              |> then(fn changeset ->
                if password_ok?(user, current),
                  do: changeset,
-                 else: add_error(changeset, :current, "is invalid")
+                 else: add_error(changeset, :current, "is incorrect")
              end)
              |> set_password(new, error_as: :new)
              |> Repo.update()
@@ -188,7 +184,18 @@ defmodule Demo.Core.User do
 
   defp password_hash(password), do: Bcrypt.hash_pwd_salt(password)
 
-  defp validate_email(changeset) do
+  @spec validate_email_shape(String.t()) :: :ok | {:error, Ecto.Changeset.t()}
+  @spec validate_email_shape(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  defp validate_email_shape(email) when is_binary(email) do
+    with {:ok, _map} <-
+           {%{}, %{email: :string}}
+           |> change(email: email)
+           |> validate_email_shape()
+           |> apply_action(:insert),
+         do: :ok
+  end
+
+  defp validate_email_shape(changeset) do
     changeset
     |> validate_required([:email])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
@@ -209,13 +216,17 @@ defmodule Demo.Core.User do
         change(user_schema_or_changeset, password_hash: password_hash(value))
 
       {:error, error_changeset} ->
-        Enum.reduce(
-          error_changeset.errors,
-          change(user_schema_or_changeset),
-          fn {field, {error, keys}}, changeset ->
-            Ecto.Changeset.add_error(changeset, field, error, keys)
-          end
-        )
+        transfer_errors(error_changeset, change(user_schema_or_changeset))
     end
+  end
+
+  defp transfer_errors(from_changeset, to_changeset) do
+    Enum.reduce(
+      from_changeset.errors,
+      to_changeset,
+      fn {field, {error, keys}}, changeset ->
+        Ecto.Changeset.add_error(changeset, field, error, keys)
+      end
+    )
   end
 end
