@@ -91,8 +91,10 @@ defmodule Demo.Core.User do
     # prevents hijacking of non-owned emails, when a user tries to confirm the email address they
     # don't own.
     unless Repo.exists?(where(User, email: ^email)) do
-      token = Token.create(user, :confirm_email, %{email: email})
-      Demo.Core.Mailer.enqueue(email, subject, body_fun.(token))
+      Repo.transact(fn ->
+        token = Token.create(user, :confirm_email, %{email: email})
+        Demo.Core.Mailer.enqueue(email, subject, body_fun.(token))
+      end)
     end
 
     # To prevent enumeration attacks, this operation will always succeed, even if the email has been taken.
@@ -122,13 +124,15 @@ defmodule Demo.Core.User do
   def start_password_reset(email) do
     with :ok <- validate_email_shape(email) do
       if user = Repo.get_by(User, email: email) do
-        token = Token.create(user, :password_reset)
+        Repo.transact(fn ->
+          token = Token.create(user, :password_reset)
 
-        Demo.Core.Mailer.enqueue(
-          email,
-          "Password reset",
-          "You can reset the password at the following url:\n#{UrlBuilder.reset_password_form(token)}"
-        )
+          Demo.Core.Mailer.enqueue(
+            email,
+            "Password reset",
+            "You can reset the password at the following url:\n#{UrlBuilder.reset_password_form(token)}"
+          )
+        end)
       end
 
       # To prevent enumeration attacks, this operation will always succeed, even if the email doesn't exist.
