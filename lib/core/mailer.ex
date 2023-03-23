@@ -1,12 +1,31 @@
 defmodule Demo.Core.Mailer do
+  use Oban.Worker, queue: :mailer
   use Swoosh.Mailer, otp_app: :demo
+
   import Demo.Helpers
   require Logger
 
   @type mailbox :: String.t() | Swoosh.Email.mailbox()
 
-  @spec send(mailbox | [mailbox], String.t(), String.t()) :: :ok | :error
-  def send(to, subject, body) do
+  @spec enqueue(String.t(), String.t(), String.t()) :: :ok
+  def enqueue(email, subject, body) do
+    %{email: email, subject: subject, body: body}
+    |> new()
+    |> Oban.insert!()
+
+    :ok
+  end
+
+  @impl Oban.Worker
+  def perform(oban_job) do
+    send(
+      Map.fetch!(oban_job.args, "email"),
+      Map.fetch!(oban_job.args, "subject"),
+      Map.fetch!(oban_job.args, "body")
+    )
+  end
+
+  defp send(to, subject, body) do
     %Swoosh.Email{
       from: {"Demo App", "noreply@demo.app"},
       subject: subject,

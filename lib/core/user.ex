@@ -92,7 +92,7 @@ defmodule Demo.Core.User do
     # don't own.
     unless Repo.exists?(where(User, email: ^email)) do
       token = Token.create(user, :confirm_email, %{email: email})
-      Demo.Core.Mailer.send(email, subject, body_fun.(token))
+      Demo.Core.Mailer.enqueue(email, subject, body_fun.(token))
     end
 
     # To prevent enumeration attacks, this operation will always succeed, even if the email has been taken.
@@ -124,7 +124,7 @@ defmodule Demo.Core.User do
       if user = Repo.get_by(User, email: email) do
         token = Token.create(user, :password_reset)
 
-        Demo.Core.Mailer.send(
+        Demo.Core.Mailer.enqueue(
           email,
           "Password reset",
           "You can reset the password at the following url:\n#{UrlBuilder.reset_password_form(token)}"
