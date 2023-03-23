@@ -40,6 +40,8 @@ defmodule Demo.Test.Client do
   end
 
   defp confirm_email_token(email) do
+    Oban.drain_queue(queue: :mailer)
+
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Registration"} = registration_email} ->
         ~r[http://.*/finish_registration_form/(?<token>.*)]
@@ -100,6 +102,8 @@ defmodule Demo.Test.Client do
   end
 
   defp password_reset_token(email) do
+    Oban.drain_queue(queue: :mailer)
+
     receive do
       {:email, %{to: [{nil, ^email}], subject: "Password reset"} = mail} ->
         ~r[http://.*/reset_password_form/(?<token>.*)]
