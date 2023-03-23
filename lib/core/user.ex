@@ -31,7 +31,7 @@ defmodule Demo.Core.User do
            :ok <- validate(token.user == nil, :invalid_token),
            {:ok, user} <-
              %User{}
-             |> change_email(Map.fetch!(token.payload, "email"))
+             |> set_email(Map.fetch!(token.payload, "email"))
              |> set_password(password)
              |> Repo.insert()
              |> anonymize_email_exists_error(),
@@ -65,7 +65,7 @@ defmodule Demo.Core.User do
              with {:ok, token} <- Token.spend(token, :confirm_email),
                   :ok <- validate(token.user != nil, :invalid_token) do
                token.user
-               |> change_email(Map.fetch!(token.payload, "email"))
+               |> set_email(Map.fetch!(token.payload, "email"))
                |> Repo.update()
                |> anonymize_email_exists_error()
              end
@@ -95,7 +95,7 @@ defmodule Demo.Core.User do
     :ok
   end
 
-  defp change_email(user, email),
+  defp set_email(user, email),
     do: user |> change(email: email) |> unique_constraint(:email)
 
   defp anonymize_email_exists_error(outcome) do
