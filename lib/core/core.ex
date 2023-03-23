@@ -10,12 +10,20 @@ defmodule Demo.Core do
     Supervisor.start_link(
       [
         Demo.Core.Repo,
+        oban(),
         {Phoenix.PubSub, name: Demo.PubSub},
         Demo.Core.Token
       ],
       name: __MODULE__,
       strategy: :one_for_one
     )
+  end
+
+  defp oban do
+    {Oban,
+     queues: [mailer: 10],
+     repo: Demo.Core.Repo,
+     testing: if(Demo.Helpers.mix_env() == :test, do: :manual, else: :disabled)}
   end
 
   @spec migrate! :: :ok
