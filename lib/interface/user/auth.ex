@@ -67,7 +67,7 @@ defmodule Demo.Interface.User.Auth do
   def require_user(conn, _opts) do
     if conn.assigns.current_user,
       do: conn,
-      else: conn |> redirect(to: ~p"/login") |> halt()
+      else: conn |> redirect(to: ~p"/login_form") |> halt()
   end
 
   def require_anonymous(conn, _opts) do

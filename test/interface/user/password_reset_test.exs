@@ -5,14 +5,14 @@ defmodule Demo.Interface.User.PasswordResetTest do
 
   describe "start password reset" do
     test "form is rendered for a guest" do
-      conn = get(build_conn(), "/start_password_reset")
+      conn = get(build_conn(), "/start_password_reset_form")
       response = html_response(conn, 200)
       assert response =~ ~s/id="form_email"/
       refute response =~ "Log out"
     end
 
     test "form redirects if the user is authenticated" do
-      conn = register!() |> recycle() |> get("/start_password_reset")
+      conn = register!() |> recycle() |> get("/start_password_reset_form")
       assert redirected_to(conn) == ~p"/"
     end
 
@@ -52,14 +52,14 @@ defmodule Demo.Interface.User.PasswordResetTest do
       register!(email: email)
       token = ok!(start_password_reset(email))
 
-      conn = get(build_conn(), "/reset_password/#{token}")
+      conn = get(build_conn(), "/reset_password_form/#{token}")
       response = html_response(conn, 200)
       assert response =~ ~s/id="form_password"/
       refute response =~ "Log out"
     end
 
     test "form returns 404 if the token is invalid" do
-      conn = get(build_conn(), "/reset_password/invalid_token")
+      conn = get(build_conn(), "/reset_password_form/invalid_token")
       assert conn.status == 404
     end
 

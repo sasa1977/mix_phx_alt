@@ -12,7 +12,7 @@ defmodule Demo.Interface.User.SettingsTest do
 
     test "redirects an anonymous user" do
       conn = get(build_conn(), "/settings")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
   end
 

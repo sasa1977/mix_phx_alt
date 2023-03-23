@@ -81,7 +81,7 @@ defmodule Demo.Interface.User.Controller do
 
     conn
     |> Auth.clear()
-    |> redirect(to: ~p"/login")
+    |> redirect(to: ~p"/login_form")
   end
 
   defp on_authenticated(conn, auth_token, opts \\ []) do

@@ -6,7 +6,7 @@ defmodule Demo.Interface.User.WelcomeTest do
   describe "welcome page" do
     test "redirects to login if the user is anonymous" do
       conn = get(build_conn(), "/")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
 
     test "redirects to registration if the token expired" do
@@ -14,7 +14,7 @@ defmodule Demo.Interface.User.WelcomeTest do
       expire_last_token()
 
       conn = conn |> recycle() |> get("/")
-      assert redirected_to(conn) == ~p"/login"
+      assert redirected_to(conn) == ~p"/login_form"
     end
 
     test "greets the authenticated user" do
