@@ -213,6 +213,8 @@ defmodule Demo.Interface.User.SettingsTest do
     end
 
     defp confirm_email_token(email) do
+      Oban.drain_queue(queue: :mailer)
+
       receive do
         {:email, %{to: [{nil, ^email}], subject: "Confirm email change"} = registration_email} ->
           ~r[http://.*/change_email/(?<token>.*)]
