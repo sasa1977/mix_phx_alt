@@ -29,14 +29,18 @@ defmodule Demo.Core.User do
     Repo.transact(fn ->
       with {:ok, token} <- Token.spend(token, :confirm_email),
            :ok <- validate(token.user == nil, :invalid_token),
-           {:ok, user} <-
-             %User{}
-             |> set_email(Map.fetch!(token.payload, "email"))
-             |> set_password(password)
-             |> Repo.insert()
-             |> anonymize_email_exists_error(),
+           email = Map.fetch!(token.payload, "email"),
+           {:ok, user} <- insert_user(email, password),
            do: {:ok, Token.create(user, :auth)}
     end)
+  end
+
+  defp insert_user(email, password) do
+    %User{}
+    |> set_email(email)
+    |> set_password(password)
+    |> Repo.insert()
+    |> anonymize_email_exists_error()
   end
 
   @spec start_email_change(User.t(), String.t(), String.t()) ::
