@@ -97,7 +97,7 @@ defmodule Demo.Interface.User.Controller do
   def settings(conn, _params), do: render_form(conn)
 
   def change_password(conn, params) do
-    %{"password" => %{"current" => current, "new" => new}} = params
+    %{"password" => %{"current_password" => current, "password" => new}} = params
 
     case User.change_password(conn.assigns.current_user, current, new) do
       {:ok, auth_token} ->
@@ -111,9 +111,9 @@ defmodule Demo.Interface.User.Controller do
   end
 
   def start_email_change(conn, params) do
-    %{"change_email" => %{"email" => email, "password" => password}} = params
+    %{"change_email" => %{"email" => email, "current_password" => current_password}} = params
 
-    case User.start_email_change(conn.assigns.current_user, email, password) do
+    case User.start_email_change(conn.assigns.current_user, email, current_password) do
       :ok -> render(conn, :instructions_sent, email: email)
       {:error, changeset} -> render_form(conn, email_changeset: changeset)
     end

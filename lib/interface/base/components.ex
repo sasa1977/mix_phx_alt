@@ -28,6 +28,9 @@ defmodule Demo.Interface.Base.Components do
   slot :actions, doc: "the slot for form actions, such as a submit button"
 
   def simple_form(assigns) do
+    # Phoenix in some cases may default the action to `put`. To override this, we provide our own default.
+    assigns = update_in(assigns.rest, &Map.put_new(&1, :method, "post"))
+
     ~H"""
     <.form :let={f} for={@for} as={@as} {@rest}>
       <div class="space-y-8 bg-white mt-10">
