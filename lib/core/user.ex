@@ -198,21 +198,17 @@ defmodule Demo.Core.User do
     end)
   end
 
-  defp set_password(user_schema_or_changeset, value, opts \\ []) do
-    error_field = Keyword.get(opts, :error_as, :password)
+  defp set_password(changeset, value) do
     min_length = if(Demo.Helpers.mix_env() == :dev, do: 4, else: 12)
 
-    {%{}, %{error_field => :string}}
-    |> change([{error_field, value}])
-    |> validate_required(error_field)
-    |> validate_length(error_field, min: min_length, max: 72)
+    {%{}, %{:password => :string}}
+    |> change([{:password, value}])
+    |> validate_required(:password)
+    |> validate_length(:password, min: min_length, max: 72)
     |> apply_action(:insert)
     |> case do
-      {:ok, _} ->
-        change(user_schema_or_changeset, password_hash: password_hash(value))
-
-      {:error, error_changeset} ->
-        transfer_errors(error_changeset, change(user_schema_or_changeset))
+      {:ok, _} -> change(changeset, password_hash: password_hash(value))
+      {:error, error_changeset} -> transfer_errors(error_changeset, change(changeset))
     end
   end
 
