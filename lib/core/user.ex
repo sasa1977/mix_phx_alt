@@ -175,41 +175,36 @@ defmodule Demo.Core.User do
 
   defp password_hash(password), do: Bcrypt.hash_pwd_salt(password)
 
-  defp user_changeset(user \\ %User{}, changes) do
-    {special_fields, changes} = Keyword.split(changes, ~w/password current_password/a)
+  defp user_changeset(user \\ %User{}, changes),
+    do: Enum.reduce(changes, change(user), &change_user(&2, &1))
 
-    user
-    |> change(changes)
+  defp change_user(changeset, {:email, email}) do
+    changeset
+    |> change(email: email)
     |> validate_required([:email])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:email, max: 160)
     |> unique_constraint(:email)
-    |> then(fn changeset ->
-      case Keyword.fetch(special_fields, :password) do
-        {:ok, password} -> set_password(changeset, password)
-        :error -> changeset
-      end
-    end)
-    |> then(fn changeset ->
-      with {:ok, current_password} <- Keyword.fetch(special_fields, :current_password),
-           false <- password_ok?(user, current_password),
-           do: add_error(changeset, :current_password, "is incorrect"),
-           else: (_ -> changeset)
-    end)
   end
 
-  defp set_password(changeset, value) do
+  defp change_user(changeset, {:password, password}) do
     min_length = if(Demo.Helpers.mix_env() == :dev, do: 4, else: 12)
 
     {%{}, %{:password => :string}}
-    |> change([{:password, value}])
+    |> change([{:password, password}])
     |> validate_required(:password)
     |> validate_length(:password, min: min_length, max: 72)
     |> apply_action(:insert)
     |> case do
-      {:ok, _} -> change(changeset, password_hash: password_hash(value))
-      {:error, error_changeset} -> transfer_errors(error_changeset, change(changeset))
+      {:ok, _} -> change(changeset, password_hash: password_hash(password))
+      {:error, error_changeset} -> transfer_errors(error_changeset, changeset)
     end
+  end
+
+  defp change_user(changeset, {:current_password, current_password}) do
+    if password_ok?(changeset.data, current_password),
+      do: changeset,
+      else: add_error(changeset, :current_password, "is incorrect")
   end
 
   defp transfer_errors(from_changeset, to_changeset) do
