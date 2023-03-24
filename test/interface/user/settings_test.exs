@@ -7,7 +7,7 @@ defmodule Demo.Interface.User.SettingsTest do
     test "is rendered if the user is authenticated" do
       conn = register!() |> recycle() |> get("/settings")
       response = html_response(conn, 200)
-      assert response =~ ~s/id="password_new"/
+      assert response =~ ~s/id="password_password"/
     end
 
     test "redirects an anonymous user" do
@@ -54,7 +54,7 @@ defmodule Demo.Interface.User.SettingsTest do
       %{email: email, password: password} = params
 
       assert {:error, conn} = change_password(conn, email, "_#{password}", new_password())
-      assert "is incorrect" in errors(conn, :password_changeset, :current)
+      assert "is incorrect" in errors(conn, :password_changeset, :current_password)
     end
 
     test "rejects invalid new password" do
@@ -64,23 +64,23 @@ defmodule Demo.Interface.User.SettingsTest do
       %{email: email, password: password} = params
 
       assert {:error, conn} = change_password(email, password, nil)
-      assert "can't be blank" in errors(conn, :password_changeset, :new)
+      assert "can't be blank" in errors(conn, :password_changeset, :password)
 
       assert {:error, conn} = change_password(email, password, "")
-      assert "can't be blank" in errors(conn, :password_changeset, :new)
+      assert "can't be blank" in errors(conn, :password_changeset, :password)
 
       assert {:error, conn} = change_password(email, password, "12345678901")
-      assert "should be at least 12 character(s)" in errors(conn, :password_changeset, :new)
+      assert "should be at least 12 character(s)" in errors(conn, :password_changeset, :password)
 
       assert {:error, conn} = change_password(email, password, String.duplicate("1", 73))
-      assert "should be at most 72 character(s)" in errors(conn, :password_changeset, :new)
+      assert "should be at most 72 character(s)" in errors(conn, :password_changeset, :password)
     end
 
     defp change_password(conn \\ nil, email, current, new) do
       conn =
         (conn || ok!(login(email: email, password: current)))
         |> recycle()
-        |> post("/change_password", password: %{current: current, new: new})
+        |> post("/change_password", password: %{current_password: current, password: new})
 
       with :ok <- validate(conn.status == 302, conn) do
         conn = conn |> recycle() |> get(redirected_to(conn))
@@ -181,9 +181,11 @@ defmodule Demo.Interface.User.SettingsTest do
       conn =
         ok!(login(params))
         |> recycle()
-        |> post("/start_email_change", change_email: %{email: new_email(), password: "invalid"})
+        |> post("/start_email_change",
+          change_email: %{email: new_email(), current_password: "invalid"}
+        )
 
-      assert "is incorrect" in errors(conn, :email_changeset, :password)
+      assert "is incorrect" in errors(conn, :email_changeset, :current_password)
     end
 
     test "fails for invalid token" do
@@ -202,7 +204,7 @@ defmodule Demo.Interface.User.SettingsTest do
         ok!(login(login_params))
         |> recycle()
         |> post("/start_email_change",
-          change_email: %{email: new_email, password: login_params.password}
+          change_email: %{email: new_email, current_password: login_params.password}
         )
 
       200 = conn.status
