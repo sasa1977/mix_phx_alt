@@ -1,8 +1,8 @@
 on: push
 
 env:
-  ELIXIR_VERSION: 1.14
-  OTP_VERSION: 25
+  ELIXIR_VERSION: 1.16
+  OTP_VERSION: 26
   CACHE_VERSION: 2
 
 jobs:

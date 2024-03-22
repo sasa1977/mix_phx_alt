@@ -2,24 +2,24 @@ defmodule Demo.Interface.Endpoint do
   use Phoenix.Endpoint, otp_app: :demo
 
   # ------------------------------------------------------------------------
-  # Initialization
+  # Childspec
   # ------------------------------------------------------------------------
 
-  @impl Phoenix.Endpoint
-  def init(_context, config) do
-    opts =
-      config
-      |> deep_merge(
-        http: [port: 4000],
-        url: Demo.Config.public_url() |> URI.parse() |> Map.take(~w/scheme host port path/),
-        secret_key_base: Demo.Config.secret_key_base(),
-        render_errors: [formats: [html: Demo.Interface.Error.Html], layout: false],
-        pubsub_server: Demo.PubSub,
-        live_view: [signing_salt: "lM/3bilV"]
-      )
-      |> deep_merge(endpoint_opts(Demo.Helpers.mix_env()))
+  # overriding child spec to provide the hardcoded endpoint options
+  defoverridable child_spec: 1
 
-    {:ok, opts}
+  @spec child_spec(any) :: Supervisor.child_spec()
+  def child_spec(_arg) do
+    [
+      http: [port: 4000],
+      url: Demo.Config.public_url() |> URI.parse() |> Map.take(~w/scheme host port path/),
+      secret_key_base: Demo.Config.secret_key_base(),
+      render_errors: [formats: [html: Demo.Interface.Error.Html], layout: false],
+      pubsub_server: Demo.PubSub,
+      live_view: [signing_salt: "lM/3bilV"]
+    ]
+    |> deep_merge(endpoint_opts(Demo.Helpers.mix_env()))
+    |> super()
   end
 
   defp endpoint_opts(:dev) do

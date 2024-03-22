@@ -18,7 +18,7 @@ config :logger, :console,
       do: "[$level] $message\n",
       else: "$time $metadata[$level] $message\n"
     ),
-  level: Map.fetch!(%{dev: :debug, test: :warn, prod: :info}, config_env()),
+  level: Map.fetch!(%{dev: :debug, test: :warning, prod: :info}, config_env()),
   metadata: [:request_id]
 
 config :phoenix,
@@ -33,6 +33,9 @@ config :swoosh, :api_client, false
 config :demo,
   mix_env: config_env(),
   ecto_repos: [Demo.Core.Repo]
+
+# Phoenix complains if the config doesn't exist, so we're providing an empty one by default
+config :demo, Demo.Interface.Endpoint, []
 
 if config_env() == :dev do
   config :demo, Demo.Interface.Endpoint,
