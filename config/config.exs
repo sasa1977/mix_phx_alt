@@ -18,7 +18,7 @@ config :logger, :console,
       do: "[$level] $message\n",
       else: "$time $metadata[$level] $message\n"
     ),
-  level: Map.fetch!(%{dev: :debug, test: :warn, prod: :info}, config_env()),
+  level: Map.fetch!(%{dev: :debug, test: :warning, prod: :info}, config_env()),
   metadata: [:request_id]
 
 config :phoenix,
