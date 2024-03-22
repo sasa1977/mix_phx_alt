@@ -16,7 +16,7 @@ defmodule Demo.Core.Repo do
 
   This function accepts the same options as `Ecto.Repo.transaction/2`.
   """
-  @spec transact((() -> result) | (module -> result), Keyword.t()) :: result
+  @spec transact((-> result) | (module -> result), Keyword.t()) :: result
         when result: :ok | {:ok, any} | :error | {:error, any}
   def transact(fun, opts \\ []) do
     transaction_result =
