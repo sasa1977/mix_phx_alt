@@ -34,6 +34,9 @@ config :demo,
   mix_env: config_env(),
   ecto_repos: [Demo.Core.Repo]
 
+# Phoenix complains if the config doesn't exist, so we're providing an empty one by default
+config :demo, Demo.Interface.Endpoint, []
+
 if config_env() == :dev do
   config :demo, Demo.Interface.Endpoint,
     code_reloader: true,
